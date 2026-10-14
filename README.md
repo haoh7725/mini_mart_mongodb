@@ -1,0 +1,128 @@
+# Mini Mart PHP
+
+Ứng dụng cửa hàng mini xây dựng bằng Laravel, hỗ trợ duyệt sản phẩm, quản lý giỏ hàng và đặt hàng. Dự án có sẵn dữ liệu mẫu để chạy thử trên máy cá nhân.
+
+## Chức năng hiện có
+
+- Trang chủ và danh sách sản phẩm theo danh mục.
+- Tìm kiếm, lọc và xem chi tiết sản phẩm.
+- Thêm, cập nhật và xóa sản phẩm trong giỏ hàng.
+- Thanh toán và tạo đơn hàng.
+- Quản lý sản phẩm, danh mục, tồn kho theo kho và lô hàng ở tầng dữ liệu.
+- Seeder cung cấp danh mục, sản phẩm và tài khoản mẫu.
+- Giao diện responsive sử dụng Blade và Tailwind CSS.
+
+## Công nghệ
+
+- PHP 8.2 trở lên
+- Laravel 12
+- SQLite (mặc định) hoặc MySQL 8
+- Node.js và npm
+- Vite 7, Tailwind CSS 4
+
+## Cài đặt nhanh
+
+```powershell
+git clone https://github.com/NguyenEvelyn/Mini_mart_php.git
+cd Mini_mart_php
+composer install
+Copy-Item .env.example .env
+php artisan key:generate
+php artisan migrate --seed
+npm install
+npm run build
+php artisan serve
+```
+
+Mở `http://127.0.0.1:8000` trong trình duyệt.
+
+Với macOS hoặc Linux, thay lệnh sao chép file môi trường bằng:
+
+```bash
+cp .env.example .env
+```
+
+## Cơ sở dữ liệu
+
+Cấu hình mặc định trong `.env.example` sử dụng SQLite. Laravel sẽ sử dụng file `database/database.sqlite` trên máy local; file này không được đưa lên GitHub.
+
+Để dùng MySQL với Laragon, tạo database `mini_mart`, sau đó cập nhật `.env`:
+
+```env
+APP_NAME="Mini Mart"
+APP_LOCALE=vi
+APP_FALLBACK_LOCALE=vi
+
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=mini_mart
+DB_USERNAME=root
+DB_PASSWORD=
+```
+
+Sau đó chạy:
+
+```powershell
+php artisan migrate:fresh --seed
+php artisan storage:link
+```
+
+Hướng dẫn Laragon chi tiết nằm trong [`docs/LARAGON.md`](docs/LARAGON.md). Sơ đồ dữ liệu nằm trong [`docs/ERD.md`](docs/ERD.md).
+
+## Tài khoản dữ liệu mẫu
+
+Khi chạy seeder, các tài khoản sau được tạo với mật khẩu dùng chung `Password@123`:
+
+| Vai trò | Email |
+|---|---|
+| Super Admin | `admin@minimart.test` |
+| Quản lý | `manager@minimart.test` |
+| Nhân viên | `staff@minimart.test` |
+| Khách hàng | `customer@minimart.test` |
+
+> Các tài khoản trên chỉ dành cho môi trường phát triển. Không sử dụng mật khẩu mẫu khi triển khai production.
+
+## Chạy trong lúc phát triển
+
+Chạy toàn bộ web server, queue, log viewer và Vite:
+
+```powershell
+composer run dev
+```
+
+Hoặc chạy backend và frontend ở hai terminal:
+
+```powershell
+php artisan serve
+npm run dev
+```
+
+## Kiểm thử
+
+```powershell
+composer test
+```
+
+## Lưu ý bảo mật
+
+- Không commit file `.env`, database local, log, cache, `vendor/` hoặc `node_modules/`.
+- Chỉ dùng `.env.example` làm mẫu cấu hình và không ghi secret thật vào file này.
+- Thay thông tin đăng nhập mẫu và đặt `APP_DEBUG=false` trước khi triển khai production.
+
+## Cấu trúc chính
+
+```text
+app/                 Controllers, models và service của ứng dụng
+config/              Cấu hình Laravel
+database/            Migration, factory và seeder
+docs/                Tài liệu cài đặt và sơ đồ dữ liệu
+public/               Điểm vào web và tài nguyên public
+resources/            Blade views, CSS và JavaScript
+routes/               Khai báo route
+tests/                Kiểm thử tự động
+```
+
+## Giấy phép
+
+Dự án sử dụng giấy phép MIT.
