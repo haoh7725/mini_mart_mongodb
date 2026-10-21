@@ -23,6 +23,12 @@
             </form>
             <nav class="header-actions" aria-label="Tiện ích">
                 <a href="{{ route('products.index') }}">Cửa hàng</a>
+                @auth
+                    @if(auth()->user()->hasRole('super-admin', 'manager', 'staff'))<a href="{{ route('admin.dashboard') }}">Quản trị</a>@endif
+                    <form action="{{ route('logout') }}" method="post">@csrf<button class="nav-button">Đăng xuất</button></form>
+                @else
+                    <a href="{{ route('login') }}">Đăng nhập</a>
+                @endauth
                 <a class="cart-link" href="{{ route('cart.index') }}">
                     <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M3 3h2l2.3 10.1a2 2 0 0 0 2 1.6h7.9a2 2 0 0 0 2-1.6L21 7H6m4 12a1 1 0 1 1-2 0 1 1 0 0 1 2 0Zm9 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z"/></svg>
                     Giỏ hàng <b>{{ array_sum(session('cart', [])) }}</b>
@@ -34,6 +40,7 @@
     @if(session('success'))
         <div class="toast" role="status">{{ session('success') }}</div>
     @endif
+    @if($errors->any())<div class="toast error" role="alert">{{ $errors->first() }}</div>@endif
 
     <main id="main">@yield('content')</main>
 

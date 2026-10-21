@@ -14,9 +14,13 @@ class CartController extends Controller
 
     public function store(Request $request, Product $product)
     {
+        abort_unless($product->is_active, 404);
+        $product->load('inventoryLots');
         $request->validate(['quantity' => ['nullable', 'integer', 'min:1', 'max:99']]);
         $cart = $request->session()->get('cart', []);
-        $cart[$product->id] = min(99, ($cart[$product->id] ?? 0) + (int) $request->input('quantity', 1));
+        $quantity = min(99, ($cart[$product->id] ?? 0) + (int) $request->input('quantity', 1));
+        abort_if($quantity > $product->stock, 422, 'Số lượng yêu cầu vượt quá tồn kho.');
+        $cart[$product->id] = $quantity;
         $request->session()->put('cart', $cart);
 
         return back()->with('success', 'Đã thêm '.$product->name.' vào giỏ hàng.');
@@ -25,6 +29,8 @@ class CartController extends Controller
     public function update(Request $request, Product $product)
     {
         $data = $request->validate(['quantity' => ['required', 'integer', 'min:1', 'max:99']]);
+        $product->load('inventoryLots');
+        abort_if($data['quantity'] > $product->stock, 422, 'Số lượng yêu cầu vượt quá tồn kho.');
         $cart = $request->session()->get('cart', []);
         $cart[$product->id] = $data['quantity'];
         $request->session()->put('cart', $cart);

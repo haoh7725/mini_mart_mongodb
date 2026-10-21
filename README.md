@@ -8,6 +8,13 @@
 - Tìm kiếm, lọc và xem chi tiết sản phẩm.
 - Thêm, cập nhật và xóa sản phẩm trong giỏ hàng.
 - Thanh toán và tạo đơn hàng.
+- Đăng ký, đăng nhập, đăng xuất và đặt lại mật khẩu.
+- Phân quyền Super Admin, Quản lý, Nhân viên và Khách hàng.
+- Dashboard quản trị và khu vực `/admin` responsive.
+- CRUD danh mục và sản phẩm, upload ảnh, xóa mềm và khôi phục.
+- Tìm kiếm, lọc và cập nhật trạng thái đơn hàng.
+- Kiểm tra tồn kho khi thêm giỏ/checkout, trừ kho theo lô và ghi lịch sử xuất kho.
+- Tạo bản ghi thanh toán COD khi đặt hàng.
 - Quản lý sản phẩm, danh mục, tồn kho theo kho và lô hàng ở tầng dữ liệu.
 - Seeder cung cấp danh mục, sản phẩm và tài khoản mẫu.
 - Giao diện responsive sử dụng Blade và Tailwind CSS.
@@ -29,6 +36,7 @@ composer install
 Copy-Item .env.example .env
 php artisan key:generate
 php artisan migrate --seed
+php artisan storage:link
 npm install
 npm run build
 php artisan serve
@@ -103,6 +111,12 @@ npm run dev
 ```powershell
 composer test
 ```
+
+Bộ test kiểm tra trang cửa hàng, bảo vệ route quản trị, phân quyền khách hàng và quy trình checkout tạo đơn/thanh toán/trừ kho.
+
+## Khu vực quản trị
+
+Sau khi seed dữ liệu, đăng nhập bằng `admin@minimart.test` với mật khẩu `Password@123`, sau đó mở `/admin`. Tài khoản quản lý có quyền danh mục, sản phẩm và đơn hàng; nhân viên có thể vận hành sản phẩm và đơn hàng nhưng không được thay đổi danh mục.
 
 ## Lưu ý bảo mật
 
