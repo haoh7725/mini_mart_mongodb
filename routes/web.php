@@ -39,6 +39,8 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:super-admin,ma
     Route::post('categories/{category}/restore', [AdminCategoryController::class, 'restore'])->name('categories.restore');
     Route::resource('products', AdminProductController::class)->except('show');
     Route::post('products/{product}/restore', [AdminProductController::class, 'restore'])->name('products.restore');
+    Route::delete('products/{product}/images/{image}', [AdminProductController::class, 'destroyImage'])->name('products.images.destroy');
+    Route::patch('products/{product}/images/{image}/primary', [AdminProductController::class, 'setPrimaryImage'])->name('products.images.primary');
     Route::get('orders', [AdminOrderController::class, 'index'])->name('orders.index');
     Route::get('orders/{order}', [AdminOrderController::class, 'show'])->name('orders.show');
     Route::patch('orders/{order}', [AdminOrderController::class, 'update'])->name('orders.update');

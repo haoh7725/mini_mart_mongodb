@@ -22,7 +22,9 @@ class DatabaseSeeder extends Seeder
             ['name' => 'Quản lý', 'slug' => 'manager', 'description' => 'Quản lý vận hành cửa hàng'],
             ['name' => 'Nhân viên', 'slug' => 'staff', 'description' => 'Xử lý sản phẩm, kho và đơn hàng'],
             ['name' => 'Khách hàng', 'slug' => 'customer', 'description' => 'Mua hàng trên website'],
-        ])->mapWithKeys(fn (array $role) => [$role['slug'] => Role::query()->create($role)]);
+        ])->mapWithKeys(fn (array $role) => [
+            $role['slug'] => Role::query()->updateOrCreate(['slug' => $role['slug']], $role),
+        ]);
 
         foreach ([
             ['Quản trị hệ thống', 'admin@minimart.test', 'super-admin'],
@@ -30,9 +32,8 @@ class DatabaseSeeder extends Seeder
             ['Nhân viên bán hàng', 'staff@minimart.test', 'staff'],
             ['Khách hàng mẫu', 'customer@minimart.test', 'customer'],
         ] as [$name, $email, $role]) {
-            User::factory()->create([
+            User::query()->updateOrCreate(['email' => $email], [
                 'name' => $name,
-                'email' => $email,
                 'password' => 'Password@123',
                 'role_id' => $roles[$role]->id,
                 'email_verified_at' => now(),
@@ -46,10 +47,19 @@ class DatabaseSeeder extends Seeder
             ['name' => 'Đồ uống', 'slug' => 'do-uong', 'description' => 'Tươi mát mọi khoảnh khắc', 'sort_order' => 4],
             ['name' => 'Đồ khô', 'slug' => 'do-kho', 'description' => 'Thiết yếu cho căn bếp', 'sort_order' => 5],
             ['name' => 'Chăm sóc nhà cửa', 'slug' => 'cham-soc-nha-cua', 'description' => 'Nhà sạch, sống khỏe', 'sort_order' => 6],
-        ])->mapWithKeys(fn ($category) => [$category['slug'] => DB::table('categories')->insertGetId($category + ['is_active' => true, 'created_at' => now(), 'updated_at' => now()])]);
+        ])->mapWithKeys(function ($category) {
+            DB::table('categories')->updateOrInsert(
+                ['slug' => $category['slug']],
+                $category + ['is_active' => true, 'created_at' => now(), 'updated_at' => now()],
+            );
 
-        $unitId = DB::table('units')->insertGetId(['name' => 'Sản phẩm', 'symbol' => 'sp', 'created_at' => now(), 'updated_at' => now()]);
-        $warehouseId = DB::table('warehouses')->insertGetId(['name' => 'Kho trung tâm', 'code' => 'KHO-HCM', 'address' => 'TP. Hồ Chí Minh', 'is_active' => true, 'created_at' => now(), 'updated_at' => now()]);
+            return [$category['slug'] => DB::table('categories')->where('slug', $category['slug'])->value('id')];
+        });
+
+        DB::table('units')->updateOrInsert(['symbol' => 'sp'], ['name' => 'Sản phẩm', 'created_at' => now(), 'updated_at' => now()]);
+        $unitId = DB::table('units')->where('symbol', 'sp')->value('id');
+        DB::table('warehouses')->updateOrInsert(['code' => 'KHO-HCM'], ['name' => 'Kho trung tâm', 'address' => 'TP. Hồ Chí Minh', 'is_active' => true, 'created_at' => now(), 'updated_at' => now()]);
+        $warehouseId = DB::table('warehouses')->where('code', 'KHO-HCM')->value('id');
         $products = [
             ['Rau cải ngọt VietGAP 500g','rau-cai-ngot-vietgap','RAU001','rau-cu-qua',28000,null,'Rau xanh giòn ngọt, thu hoạch trong ngày.'],
             ['Cà chua beef Đà Lạt 500g','ca-chua-beef-da-lat','RAU002','rau-cu-qua',35000,29000,'Cà chua mọng nước, phù hợp salad và nấu ăn.'],
@@ -65,13 +75,21 @@ class DatabaseSeeder extends Seeder
             ['Nước giặt thiên nhiên 3L','nuoc-giat-thien-nhien','NHA001','cham-soc-nha-cua',159000,139000,'Sạch dịu nhẹ, hương thơm tươi mát.'],
         ];
         foreach ($products as $index => [$name,$slug,$sku,$category,$price,$sale,$description]) {
-            $productId = DB::table('products')->insertGetId([
+            DB::table('products')->updateOrInsert(['sku' => $sku], [
                 'category_id' => $categories[$category], 'unit_id' => $unitId, 'name' => $name, 'slug' => $slug,
-                'sku' => $sku, 'short_description' => $description, 'description' => $description,
+                'short_description' => $description, 'description' => $description,
                 'cost_price' => $price * .7, 'selling_price' => $price, 'sale_price' => $sale,
                 'is_featured' => $index < 8, 'is_active' => true, 'created_at' => now(), 'updated_at' => now(),
             ]);
-            DB::table('inventory_lots')->insert(['warehouse_id' => $warehouseId, 'product_id' => $productId, 'quantity' => 50 + $index * 3, 'unit_cost' => $price * .7, 'created_at' => now(), 'updated_at' => now()]);
+            $productId = DB::table('products')->where('sku', $sku)->value('id');
+            DB::table('inventory_lots')->updateOrInsert(
+                ['warehouse_id' => $warehouseId, 'product_id' => $productId, 'product_variant_id' => null],
+                ['quantity' => 50 + $index * 3, 'unit_cost' => $price * .7, 'created_at' => now(), 'updated_at' => now()],
+            );
+        }
+
+        if (! app()->environment('testing')) {
+            $this->call(DemoDataSeeder::class);
         }
     }
 }

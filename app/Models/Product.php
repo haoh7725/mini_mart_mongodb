@@ -31,6 +31,11 @@ class Product extends Model
         return $this->images->firstWhere('is_primary', true)?->path ?? $this->images->first()?->path;
     }
 
+    public function getPrimaryImageUrlAttribute(): ?string
+    {
+        return $this->images->firstWhere('is_primary', true)?->url ?? $this->images->first()?->url;
+    }
+
     public function getCurrentPriceAttribute(): float
     {
         $saleIsActive = $this->sale_price !== null

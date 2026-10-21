@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\ProductRequest;
 use App\Models\Category;
 use App\Models\Product;
+use App\Models\ProductImage;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -30,7 +31,7 @@ class ProductController extends Controller
         $product = DB::transaction(function () use ($request) {
             $data = $this->normalized($request);
             $product = Product::create($data);
-            $this->saveImage($request, $product);
+            $this->saveImages($request, $product);
             return $product;
         });
         return redirect()->route('admin.products.edit', $product)->with('success', 'Đã thêm sản phẩm.');
@@ -40,7 +41,7 @@ class ProductController extends Controller
     {
         DB::transaction(function () use ($request, $product) {
             $product->update($this->normalized($request));
-            $this->saveImage($request, $product);
+            $this->saveImages($request, $product);
         });
         return back()->with('success', 'Đã cập nhật sản phẩm.');
     }
@@ -58,23 +59,63 @@ class ProductController extends Controller
         return back()->with('success', 'Đã khôi phục sản phẩm.');
     }
 
+    public function destroyImage(Product $product, ProductImage $image)
+    {
+        abort_unless($image->product_id === $product->id, 404);
+        $wasPrimary = $image->is_primary;
+
+        if (! Str::startsWith($image->path, ['http://', 'https://'])) {
+            Storage::disk('public')->delete($image->path);
+        }
+
+        $image->delete();
+
+        if ($wasPrimary) {
+            $product->images()->first()?->update(['is_primary' => true]);
+        }
+
+        return back()->with('success', 'Đã xóa ảnh sản phẩm.');
+    }
+
+    public function setPrimaryImage(Product $product, ProductImage $image)
+    {
+        abort_unless($image->product_id === $product->id, 404);
+
+        DB::transaction(function () use ($product, $image) {
+            $product->images()->update(['is_primary' => false]);
+            $image->update(['is_primary' => true]);
+        });
+
+        return back()->with('success', 'Đã đặt ảnh chính.');
+    }
+
     private function formData(Product $product): array
     {
         return ['product' => $product, 'categories' => Category::where('is_active', true)->orderBy('name')->get(), 'units' => DB::table('units')->orderBy('name')->get()];
     }
     private function normalized(ProductRequest $request): array
     {
-        $data = $request->safe()->except('image');
+        $data = $request->safe()->except('images');
         $data['slug'] = $data['slug'] ?: Str::slug($data['name']);
         $data['is_active'] = $request->boolean('is_active');
         $data['is_featured'] = $request->boolean('is_featured');
         return $data;
     }
-    private function saveImage(ProductRequest $request, Product $product): void
+    private function saveImages(ProductRequest $request, Product $product): void
     {
-        if (! $request->hasFile('image')) return;
-        $old = $product->images()->where('is_primary', true)->first();
-        if ($old) { Storage::disk('public')->delete($old->path); $old->delete(); }
-        $product->images()->create(['path' => $request->file('image')->store('products', 'public'), 'alt_text' => $product->name, 'is_primary' => true]);
+        $files = $request->file('images', []);
+        if ($files === []) return;
+
+        $hasPrimaryImage = $product->images()->where('is_primary', true)->exists();
+        $nextSortOrder = ((int) $product->images()->max('sort_order')) + 1;
+
+        foreach ($files as $index => $file) {
+            $product->images()->create([
+                'path' => $file->store('products', 'public'),
+                'alt_text' => $product->name,
+                'sort_order' => $nextSortOrder + $index,
+                'is_primary' => ! $hasPrimaryImage && $index === 0,
+            ]);
+        }
     }
 }

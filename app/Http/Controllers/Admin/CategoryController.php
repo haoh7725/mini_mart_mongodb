@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\CategoryRequest;
 use App\Models\Category;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class CategoryController extends Controller
@@ -20,19 +21,21 @@ class CategoryController extends Controller
     public function create() { return view('admin.categories.form', ['category' => new Category]); }
     public function store(CategoryRequest $request)
     {
-        $data = $request->validated();
+        $data = $request->safe()->except(['image_file', 'remove_image']);
         $data['slug'] = $data['slug'] ?: Str::slug($data['name']);
         $data['is_active'] = $request->boolean('is_active');
-        Category::create($data);
+        $category = Category::create($data);
+        $this->saveImage($request, $category);
         return redirect()->route('admin.categories.index')->with('success', 'Đã thêm danh mục.');
     }
     public function edit(Category $category) { return view('admin.categories.form', compact('category')); }
     public function update(CategoryRequest $request, Category $category)
     {
-        $data = $request->validated();
+        $data = $request->safe()->except(['image_file', 'remove_image']);
         $data['slug'] = $data['slug'] ?: Str::slug($data['name']);
         $data['is_active'] = $request->boolean('is_active');
         $category->update($data);
+        $this->saveImage($request, $category);
         return redirect()->route('admin.categories.index')->with('success', 'Đã cập nhật danh mục.');
     }
     public function destroy(Category $category)
@@ -45,5 +48,23 @@ class CategoryController extends Controller
     {
         Category::withTrashed()->findOrFail($category)->restore();
         return back()->with('success', 'Đã khôi phục danh mục.');
+    }
+
+    private function saveImage(CategoryRequest $request, Category $category): void
+    {
+        if ($request->boolean('remove_image') && $category->image) {
+            Storage::disk('public')->delete($category->image);
+            $category->update(['image' => null]);
+        }
+
+        if (! $request->hasFile('image_file')) return;
+
+        if ($category->image) {
+            Storage::disk('public')->delete($category->image);
+        }
+
+        $category->update([
+            'image' => $request->file('image_file')->store('categories', 'public'),
+        ]);
     }
 }
