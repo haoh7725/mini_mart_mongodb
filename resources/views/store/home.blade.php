@@ -1,21 +1,56 @@
 @extends('layouts.app')
 @section('title', 'Trang chủ')
 @section('content')
-<section class="hero">
-    <div class="container hero-grid">
-        <div class="hero-copy">
-            <div class="eyebrow">Thực phẩm sạch · Nguồn gốc rõ ràng</div>
-            <h1>Tươi ngon mỗi ngày,<br><em>giao nhanh tận cửa.</em></h1>
-            <p>Từ rau củ vừa thu hoạch đến nhu yếu phẩm gia đình, MiniMart giúp bạn mua sắm nhanh hơn và an tâm hơn.</p>
-            <div class="hero-actions"><a class="button primary" href="{{ route('products.index') }}">Mua sắm ngay</a><a class="button ghost" href="#featured">Xem ưu đãi</a></div>
-            <div class="trust-row"><span><b>10K+</b> khách hàng</span><span><b>500+</b> sản phẩm</span><span><b>4.9/5</b> hài lòng</span></div>
-        </div>
-        <div class="hero-card" aria-label="Ưu đãi trong ngày">
-            <div class="hero-orbit orbit-one"></div><div class="hero-orbit orbit-two"></div>
-            <span class="hero-label">COMBO XANH</span><strong>299K</strong><p>Trọn tuần tươi ngon<br>cho cả gia đình</p><a href="{{ route('products.index') }}">Khám phá combo →</a>
-        </div>
+@if($heroSlides->isNotEmpty())
+<section id="hero-slider" class="hero-slider carousel slide" data-bs-ride="carousel" data-bs-interval="5500" aria-roledescription="carousel" aria-label="Ưu đãi nổi bật">
+    <div class="carousel-inner">
+        @foreach($heroSlides as $slide)
+            @php($product = $slide['product'])
+            <div class="carousel-item hero-slide theme-{{ $slide['theme'] }} {{ $loop->first ? 'active' : '' }}" role="group" aria-roledescription="slide" aria-label="{{ $loop->iteration }} / {{ $loop->count }}">
+                <div class="container hero-slide-grid">
+                    <div class="hero-copy">
+                        <div class="eyebrow">{{ $slide['eyebrow'] }}</div>
+                        <{{ $loop->first ? 'h1' : 'h2' }} class="hero-title">{{ $slide['title'] }}<br><em>{{ $slide['highlight'] }}</em></{{ $loop->first ? 'h1' : 'h2' }}>
+                        <p>{{ $slide['text'] }}</p>
+                        <div class="hero-actions">
+                            <form action="{{ route('cart.store', $product) }}" method="post">@csrf
+                                <input type="hidden" name="quantity" value="1"><input type="hidden" name="buy_now" value="1">
+                                <button class="button primary hero-buy">Đặt hàng ngay <span aria-hidden="true">→</span></button>
+                            </form>
+                            <a class="button ghost" href="{{ route('products.index', ['category' => $slide['category']]) }}">{{ $slide['link'] }}</a>
+                        </div>
+                        <div class="trust-row"><span><b>2 giờ</b> giao nhanh</span><span><b>300K</b> miễn phí giao</span><span><b>4.9/5</b> hài lòng</span></div>
+                    </div>
+                    <div class="hero-visual">
+                        <x-hero-art :theme="$slide['theme']" />
+                        <a class="hero-photo" href="{{ route('products.show', $product) }}" tabindex="-1">
+                            @if($product->primary_image_url)<img src="{{ $product->primary_image_url }}" alt="{{ $product->name }}" @if(! $loop->first) loading="lazy" @endif>@else<span>{{ mb_substr($product->name, 0, 1) }}</span>@endif
+                        </a>
+                        @if($slide['discount'] > 0)<span class="hero-discount">-{{ $slide['discount'] }}%</span>@endif
+                        <div class="hero-price-tag">
+                            <small>{{ $product->name }}</small>
+                            <div><strong>{{ number_format($product->current_price, 0, ',', '.') }}đ</strong>@if($product->current_price < $product->selling_price)<del>{{ number_format($product->selling_price, 0, ',', '.') }}đ</del>@endif</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        @endforeach
     </div>
+    @if($heroSlides->count() > 1)
+        <div class="container hero-nav">
+            <div class="carousel-indicators hero-dots">
+                @foreach($heroSlides as $slide)
+                    <button type="button" data-bs-target="#hero-slider" data-bs-slide-to="{{ $loop->index }}" class="{{ $loop->first ? 'active' : '' }}" @if($loop->first) aria-current="true" @endif aria-label="Banner {{ $loop->iteration }}: {{ $slide['eyebrow'] }}"></button>
+                @endforeach
+            </div>
+            <div class="hero-arrows">
+                <button type="button" data-bs-target="#hero-slider" data-bs-slide="prev" aria-label="Banner trước"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg></button>
+                <button type="button" data-bs-target="#hero-slider" data-bs-slide="next" aria-label="Banner tiếp theo"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></button>
+            </div>
+        </div>
+    @endif
 </section>
+@endif
 
 <section class="benefits"><div class="container benefit-grid">
     <div><span>01</span><h3>Tươi mỗi sáng</h3><p>Chọn lọc và nhập mới hằng ngày.</p></div>

@@ -22,6 +22,9 @@ class CartController extends Controller
         abort_if($quantity > $product->stock, 422, 'Số lượng yêu cầu vượt quá tồn kho.');
         $cart[$product->id] = $quantity;
         $request->session()->put('cart', $cart);
+        if ($request->boolean('buy_now')) {
+            return redirect()->route('cart.index')->with('success', 'Đã thêm '.$product->name.' vào giỏ hàng.');
+        }
 
         return back()->with('success', 'Đã thêm '.$product->name.' vào giỏ hàng.');
     }

@@ -384,4 +384,15 @@ class StorefrontTest extends TestCase
         $this->getJson(route('address.provinces'))->assertStatus(503);
     }
 
+    public function test_home_slider_shows_category_deals_and_buy_now_goes_to_cart(): void
+    {
+        $response = $this->get('/')->assertOk()->assertSee('hero-slider')->assertSee('Đặt hàng ngay');
+        $slides = $response->viewData('heroSlides');
+        $this->assertNotEmpty($slides);
+        $product = $slides->first()['product'];
+
+        $this->post(route('cart.store', $product), ['quantity' => 1, 'buy_now' => 1])->assertRedirect(route('cart.index'));
+        $this->assertSame(1, session('cart')[$product->id]);
+    }
+
 }

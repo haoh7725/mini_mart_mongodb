@@ -13,7 +13,37 @@ class StoreController extends Controller
         return view('store.home', [
             'categories' => Category::query()->where('is_active', true)->orderBy('sort_order')->get(),
             'featured' => Product::query()->with(['category', 'inventoryLots', 'images'])->where('is_active', true)->where('is_featured', true)->latest()->take(8)->get(),
+            'heroSlides' => $this->heroSlides(),
         ]);
+    }
+
+    // Mỗi banner chọn sản phẩm còn hàng đang giảm sâu nhất của danh mục để đặt ngay.
+    private function heroSlides()
+    {
+        $slides = [
+            ['category' => 'rau-cu-qua', 'theme' => 'green', 'eyebrow' => 'Rau củ quả · Hái sáng nay', 'title' => 'Rau củ tươi rói,', 'highlight' => 'giảm đến :discount%', 'fallback' => 'giá tốt mỗi ngày', 'text' => 'Nhập mới mỗi sáng từ nông trại VietGAP, giao tận cửa trong 2 giờ để bữa cơm nhà luôn tươi ngon.', 'link' => 'Xem rau củ'],
+            ['category' => 'thit-hai-san', 'theme' => 'ocean', 'eyebrow' => 'Thịt & Hải sản · Tươi sống', 'title' => 'Hải sản tươi ngon,', 'highlight' => 'ưu đãi :discount%', 'fallback' => 'chuẩn vị biển', 'text' => 'Cá hồi, thịt sạch được cấp đông và bảo quản lạnh đúng chuẩn, đóng gói gọn gàng từng phần ăn.', 'link' => 'Xem thịt & hải sản'],
+            ['category' => 'sua-trung', 'theme' => 'sun', 'eyebrow' => 'Sữa & Trứng · Bữa sáng đủ chất', 'title' => 'Bữa sáng đủ chất,', 'highlight' => 'tiết kiệm :discount%', 'fallback' => 'cho cả nhà', 'text' => 'Sữa tươi, trứng gà thả vườn giàu dinh dưỡng, đặt tối nay sáng mai đã có trên bàn ăn.', 'link' => 'Xem sữa & trứng'],
+            ['category' => 'do-kho', 'theme' => 'earth', 'eyebrow' => 'Đồ khô · Tích trữ thông minh', 'title' => 'Gạo ngon, đồ khô', 'highlight' => 'giảm :discount% hôm nay', 'fallback' => 'đầy đủ cho bếp', 'text' => 'Gạo ST25, gia vị và đồ khô chính hãng. Đơn từ 300.000đ được miễn phí giao hàng.', 'link' => 'Xem đồ khô'],
+        ];
+
+        $products = Product::query()->with(['category', 'inventoryLots', 'images'])->where('is_active', true)
+            ->whereHas('category', fn ($q) => $q->whereIn('slug', array_column($slides, 'category')))->get()
+            ->filter(fn ($product) => $product->stock > 0);
+        $discount = fn ($product) => (float) $product->selling_price > 0
+            ? (int) round((1 - $product->current_price / (float) $product->selling_price) * 100) : 0;
+
+        return collect($slides)->map(function (array $slide) use ($products, $discount) {
+            $product = $products->where('category.slug', $slide['category'])->sortByDesc($discount)->first();
+            if (! $product) return null;
+            $percent = $discount($product);
+
+            return array_merge($slide, [
+                'product' => $product,
+                'discount' => $percent,
+                'highlight' => $percent > 0 ? str_replace(':discount', $percent, $slide['highlight']) : $slide['fallback'],
+            ]);
+        })->filter()->values();
     }
 
     public function products(Request $request)
