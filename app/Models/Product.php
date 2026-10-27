@@ -16,6 +16,19 @@ class Product extends Model
         return $this->belongsTo(Category::class);
     }
 
+    public function brand()
+    {
+        return $this->belongsTo(Brand::class);
+    }
+
+    // Giá bán thực tế ở mức SQL (giá khuyến mãi khi còn hiệu lực), dùng để lọc và sắp xếp.
+    public static function effectivePriceSql(): array
+    {
+        $now = now()->toDateTimeString();
+
+        return ['(CASE WHEN sale_price IS NOT NULL AND (sale_starts_at IS NULL OR sale_starts_at <= ?) AND (sale_ends_at IS NULL OR sale_ends_at >= ?) THEN sale_price ELSE selling_price END)', [$now, $now]];
+    }
+
     public function inventoryLots()
     {
         return $this->hasMany(InventoryLot::class);

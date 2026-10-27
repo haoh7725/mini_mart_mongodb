@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ProductRequest;
+use App\Models\Brand;
 use App\Models\Category;
 use App\Models\Product;
 use App\Models\ProductImage;
@@ -91,7 +92,7 @@ class ProductController extends Controller
 
     private function formData(Product $product): array
     {
-        return ['product' => $product, 'categories' => Category::where('is_active', true)->orderBy('name')->get(), 'units' => DB::table('units')->orderBy('name')->get()];
+        return ['product' => $product, 'categories' => Category::where('is_active', true)->orderBy('name')->get(), 'brands' => Brand::where('is_active', true)->orderBy('name')->get(), 'units' => DB::table('units')->orderBy('name')->get()];
     }
     private function normalized(ProductRequest $request): array
     {

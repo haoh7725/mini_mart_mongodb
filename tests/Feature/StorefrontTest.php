@@ -395,4 +395,27 @@ class StorefrontTest extends TestCase
         $this->assertSame(1, session('cart')[$product->id]);
     }
 
+    public function test_shop_filters_by_brand_price_and_sale(): void
+    {
+        $names = fn ($response) => $response->viewData('products')->pluck('name')->sort()->values()->all();
+
+        $this->get(route('products.index', ['brand' => 'vietgap-farm']))->assertOk()
+            ->assertViewHas('products', fn ($products) => $products->total() === 2);
+        $this->assertSame(['Gạo ST25 túi 5kg'], $names($this->get(route('products.index', ['brand' => 'neptune']))));
+
+        $under50 = $this->get(route('products.index', ['price' => 'duoi-50k']));
+        $this->assertTrue($under50->viewData('products')->every(fn ($p) => $p->regular_price < 50000));
+        $this->assertSame(4, $under50->viewData('products')->total());
+
+        $custom = $this->get(route('products.index', ['min_price' => 200000, 'max_price' => 100000, 'sort' => 'price_asc']));
+        $prices = $custom->viewData('products')->getCollection()->map(fn ($p) => $p->regular_price)->all();
+        $this->assertNotEmpty($prices);
+        $this->assertTrue(collect($prices)->every(fn ($price) => $price >= 100000 && $price <= 200000));
+        $this->assertSame($prices, collect($prices)->sort()->values()->all());
+
+        $this->get(route('products.index', ['sale' => 1, 'category' => 'rau-cu-qua']))->assertOk()
+            ->assertViewHas('products', fn ($products) => $products->every(fn ($p) => $p->regular_price < (float) $p->selling_price))
+            ->assertSee('Đang giảm giá');
+    }
+
 }
