@@ -59,6 +59,7 @@ Route::prefix('tai-khoan')->name('account.')->middleware('auth')->group(function
     Route::get('/don-hang', [AccountController::class, 'orders'])->name('orders.index');
     Route::get('/don-hang/{code}', [AccountController::class, 'showOrder'])->name('orders.show');
     Route::post('/don-hang/{code}/mua-lai', [AccountController::class, 'reorder'])->name('orders.reorder');
+    Route::post('/don-hang/{code}/huy', [AccountController::class, 'cancelOrder'])->name('orders.cancel');
     Route::post('/danh-gia/{item}', [ReviewController::class, 'store'])->name('reviews.store');
 });
 

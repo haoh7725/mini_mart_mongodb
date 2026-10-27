@@ -7,11 +7,11 @@
     <nav class="account-nav" aria-label="Tài khoản"><a href="{{ route('account.profile') }}">Hồ sơ</a><a class="active" href="{{ route('account.orders.index') }}">Đơn hàng đã mua</a></nav>
     <section class="account-panel">
         <div class="panel-head"><div><h2>Lịch sử mua hàng</h2><p>Theo dõi trạng thái và xem lại sản phẩm đã đặt.</p></div></div>
-        <div class="table-wrap"><table><thead><tr><th>Mã đơn</th><th>Ngày đặt</th><th>Sản phẩm</th><th>Trạng thái</th><th>Thanh toán</th><th>Tổng tiền</th></tr></thead><tbody>
+        <div class="table-wrap"><table><thead><tr><th>Mã đơn</th><th>Ngày đặt</th><th>Sản phẩm</th><th>Trạng thái</th><th>Thanh toán</th><th>Tổng tiền</th><th></th></tr></thead><tbody>
         @forelse($orders as $order)
-            <tr><td><a href="{{ route('account.orders.show', $order->code) }}"><b>{{ $order->code }}</b></a></td><td>{{ $order->created_at->format('d/m/Y H:i') }}</td><td>{{ $order->items_count }}</td><td><span class="status status-{{ $order->status }}">{{ $statuses[$order->status] ?? $order->status }}</span></td><td>{{ $order->payment_status === 'paid' ? 'Đã thanh toán' : 'Chưa thanh toán' }}</td><td><b>{{ number_format($order->total_amount, 0, ',', '.') }}đ</b></td></tr>
+            <tr><td><a href="{{ route('account.orders.show', $order->code) }}"><b>{{ $order->code }}</b></a></td><td>{{ $order->created_at->format('d/m/Y H:i') }}</td><td>{{ $order->items_count }}</td><td><span class="status status-{{ $order->status }}">{{ $statuses[$order->status] ?? $order->status }}</span></td><td>{{ $order->payment_status === 'paid' ? 'Đã thanh toán' : 'Chưa thanh toán' }}</td><td><b>{{ number_format($order->total_amount, 0, ',', '.') }}đ</b></td><td class="order-actions"><a href="{{ route('account.orders.show', $order->code) }}">Chi tiết</a>@if($order->canBeCancelledByCustomer())<a class="danger" href="{{ route('account.orders.show', [$order->code, 'huy' => 1]) }}#huy-don">Hủy đơn</a>@endif</td></tr>
         @empty
-            <tr><td colspan="6" class="empty-cell">Bạn chưa có đơn hàng nào. <a href="{{ route('products.index') }}">Mua sắm ngay</a></td></tr>
+            <tr><td colspan="7" class="empty-cell">Bạn chưa có đơn hàng nào. <a href="{{ route('products.index') }}">Mua sắm ngay</a></td></tr>
         @endforelse
         </tbody></table></div>
         <div class="admin-pagination">{{ $orders->links() }}</div>
