@@ -15,7 +15,7 @@ class DashboardController extends Controller
     public function index()
     {
         $monthlyRevenue = collect(range(5, 0))->map(function (int $monthsAgo) {
-            $month = now()->subMonths($monthsAgo);
+            $month = now()->startOfMonth()->subMonths($monthsAgo);
             return [
                 'label' => 'T'.$month->format('m'),
                 'value' => (float) Order::where('status', 'completed')->whereYear('created_at', $month->year)->whereMonth('created_at', $month->month)->sum('total_amount'),

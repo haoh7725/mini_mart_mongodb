@@ -12,6 +12,7 @@ use App\Models\User;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
@@ -197,7 +198,15 @@ class StorefrontTest extends TestCase
             'customer_note' => '', 'payment' => 'cod',
         ])->assertRedirect();
         $this->assertSame(1.0, (float) $campaign->fresh()->rescued_quantity);
+        $this->assertSame(0, $customer->fresh()->green_points);
+
+        $order = Order::query()->latest('id')->firstOrFail();
+        $this->actingAs($admin)->patch(route('admin.orders.update', $order), ['status' => 'completed', 'payment_status' => 'paid'])->assertRedirect();
         $this->assertSame(10, $customer->fresh()->green_points);
+        $this->actingAs($admin)->patch(route('admin.orders.update', $order), ['status' => 'cancelled', 'payment_status' => 'refunded'])->assertRedirect();
+        $this->assertSame(0, $customer->fresh()->green_points);
+        $this->assertSame(0.0, (float) $campaign->fresh()->rescued_quantity);
+        $this->actingAs($admin)->patch(route('admin.orders.update', $order), ['status' => 'pending', 'payment_status' => 'unpaid'])->assertSessionHasErrors('status');
     }
 
     public function test_customer_can_reorder_their_previous_order(): void
@@ -250,5 +259,174 @@ class StorefrontTest extends TestCase
         $this->postJson(route('cooking-assistant.add-products'), ['product_ids' => [$product->id]])
             ->assertOk()->assertJsonPath('cart_count', 1);
         $this->assertSame(1, session('cart')[$product->id]);
+    }
+
+    private function checkout(array $cart, string $payment = 'cod', ?User $user = null)
+    {
+        if ($user) $this->actingAs($user);
+
+        return $this->withSession(['cart' => $cart])->post('/thanh-toan', [
+            'customer_name' => 'Khách kiểm thử', 'customer_phone' => '0901234567',
+            'customer_email' => $user?->email ?? 'buyer@example.com', 'shipping_address' => '123 Đường Kiểm Thử, TP.HCM',
+            'customer_note' => '', 'payment' => $payment,
+        ]);
+    }
+
+    private function vnpayCallback(Order $order, string $responseCode, string $transactionNo)
+    {
+        $params = [
+            'vnp_Amount' => (string) round((float) $order->total_amount * 100),
+            'vnp_ResponseCode' => $responseCode, 'vnp_TransactionNo' => $transactionNo,
+            'vnp_TransactionStatus' => $responseCode === '00' ? '00' : '02', 'vnp_TxnRef' => (string) $order->id,
+        ];
+        ksort($params);
+        $params['vnp_SecureHash'] = hash_hmac('sha512', http_build_query($params), 'test-secret');
+
+        return $this->getJson(route('vnpay.ipn', $params));
+    }
+
+    public function test_rescue_price_only_applies_to_remaining_campaign_quantity(): void
+    {
+        $product = Product::with('inventoryLots')->firstOrFail();
+        $lot = $product->inventoryLots->firstOrFail();
+        $lot->update(['quantity' => 50, 'reserved_quantity' => 0, 'expires_at' => today()->addDays(2)]);
+        InventoryLot::where('product_id', $product->id)->where('id', '!=', $lot->id)->delete();
+        $campaign = RescueCampaign::create([
+            'inventory_lot_id' => $lot->id, 'product_id' => $product->id, 'discount_percent' => 50,
+            'original_price' => 20000, 'rescue_price' => 10000, 'initial_quantity' => 10, 'rescued_quantity' => 8,
+            'is_active' => true, 'starts_at' => now()->subHour(), 'ends_at' => today()->addDays(2)->endOfDay(),
+        ]);
+        $regular = Product::find($product->id)->regular_price;
+
+        $this->checkout([$product->id => 5])->assertRedirect();
+
+        $order = Order::query()->latest('id')->firstOrFail();
+        $this->assertEquals(2 * 10000 + 3 * $regular, (float) $order->subtotal);
+        $this->assertSame(10.0, (float) $campaign->fresh()->rescued_quantity);
+        $this->assertSame(2.0, abs((float) DB::table('stock_movements')->whereNotNull('rescue_campaign_id')->sum('quantity')));
+    }
+
+    public function test_cancelled_vnpay_payments_are_recorded_and_restock(): void
+    {
+        config()->set('services.vnpay', [
+            'url' => 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html',
+            'tmn_code' => 'TESTCODE', 'hash_secret' => 'test-secret', 'return_url' => null,
+        ]);
+        $product = Product::with('inventoryLots')->firstOrFail();
+        $before = $product->stock;
+
+        foreach ([1, 2] as $attempt) {
+            $this->checkout([$product->id => 2], 'vnpay')->assertRedirect();
+            $order = Order::query()->latest('id')->firstOrFail();
+            $this->vnpayCallback($order, '24', '0')->assertOk()->assertJsonPath('RspCode', '00');
+            $this->assertDatabaseHas('orders', ['id' => $order->id, 'status' => 'cancelled', 'payment_status' => 'failed']);
+        }
+
+        $this->assertSame(2, DB::table('payments')->where('status', 'failed')->whereNull('transaction_id')->count());
+        $this->assertSame($before, Product::with('inventoryLots')->find($product->id)->stock);
+    }
+
+    public function test_reopening_campaign_keeps_rescued_history_active(): void
+    {
+        $admin = User::where('email', 'admin@minimart.test')->firstOrFail();
+        $lot = InventoryLot::firstOrFail();
+        $lot->update(['quantity' => 10, 'reserved_quantity' => 0, 'expires_at' => today()]);
+
+        $this->actingAs($admin)->post(route('admin.rescue.store', $lot), ['discount_percent' => 30])->assertRedirect();
+        $campaign = RescueCampaign::firstOrFail();
+        $campaign->update(['rescued_quantity' => 6]);
+        $lot->update(['quantity' => 4]);
+
+        $this->actingAs($admin)->post(route('admin.rescue.store', $lot), ['discount_percent' => 50])->assertRedirect();
+        $this->assertSame(10.0, (float) $campaign->fresh()->initial_quantity);
+        $this->assertSame(1, RescueCampaign::active()->count());
+    }
+
+    public function test_guest_orders_are_only_linked_to_verified_email(): void
+    {
+        $order = Order::create(['code' => 'MM-GUEST', 'customer_name' => 'Khách vãng lai', 'customer_phone' => '0901234567', 'customer_email' => 'victim@example.com', 'shipping_address' => 'Địa chỉ của nạn nhân', 'subtotal' => 100000, 'shipping_fee' => 0, 'total_amount' => 100000]);
+        $customer = User::where('email', 'customer@minimart.test')->firstOrFail();
+
+        $this->actingAs($customer)->patch(route('account.profile.update'), ['name' => $customer->name, 'email' => 'victim@example.com'])->assertRedirect();
+        $this->assertNull($customer->fresh()->email_verified_at);
+        $this->actingAs($customer->fresh())->get(route('account.orders.show', $order->code))->assertNotFound();
+
+        $customer->forceFill(['email_verified_at' => now()])->save();
+        $this->actingAs($customer->fresh())->get(route('account.orders.show', $order->code))->assertOk();
+    }
+
+    public function test_reorder_respects_cart_limit(): void
+    {
+        $customer = User::where('email', 'customer@minimart.test')->firstOrFail();
+        $product = Product::firstOrFail();
+        InventoryLot::where('product_id', $product->id)->update(['quantity' => 500, 'reserved_quantity' => 0]);
+        $order = Order::create(['user_id' => $customer->id, 'code' => 'MM-BULK', 'customer_name' => $customer->name, 'customer_phone' => '0901234567', 'customer_email' => $customer->email, 'shipping_address' => 'TP.HCM', 'subtotal' => 100000, 'shipping_fee' => 0, 'total_amount' => 100000]);
+        $order->items()->create(['product_id' => $product->id, 'product_name' => $product->name, 'sku' => $product->sku, 'quantity' => 80, 'unit_price' => 1000, 'line_total' => 80000]);
+
+        $this->actingAs($customer)->withSession(['cart' => [$product->id => 80]])->post(route('account.orders.reorder', $order->code))->assertRedirect();
+        $this->assertSame(99, session('cart')[$product->id]);
+    }
+
+    public function test_dashboard_shows_six_distinct_months_at_month_end(): void
+    {
+        $this->travelTo(now()->setDate(2026, 10, 31));
+        $admin = User::where('email', 'admin@minimart.test')->firstOrFail();
+
+        $this->actingAs($admin)->get(route('admin.dashboard'))->assertOk()
+            ->assertViewHas('monthlyRevenue', fn ($months) => $months->pluck('label')->all() === ['T05', 'T06', 'T07', 'T08', 'T09', 'T10']);
+    }
+
+    public function test_address_api_error_returns_service_unavailable(): void
+    {
+        Cache::flush();
+        Http::fake(['*/provinces' => Http::response([], 500)]);
+
+        $this->getJson(route('address.provinces'))->assertStatus(503);
+    }
+
+    public function test_home_slider_shows_category_deals_and_buy_now_goes_to_cart(): void
+    {
+        $response = $this->get('/')->assertOk()->assertSee('hero-slider')->assertSee('Đặt hàng ngay');
+        $slides = $response->viewData('heroSlides');
+        $this->assertNotEmpty($slides);
+        $product = $slides->first()['product'];
+
+        $this->post(route('cart.store', $product), ['quantity' => 1, 'buy_now' => 1])->assertRedirect(route('cart.index'));
+        $this->assertSame(1, session('cart')[$product->id]);
+    }
+
+    public function test_shop_filters_by_brand_price_and_sale(): void
+    {
+        $names = fn ($response) => $response->viewData('products')->pluck('name')->sort()->values()->all();
+
+        $this->get(route('products.index', ['brand' => 'vietgap-farm']))->assertOk()
+            ->assertViewHas('products', fn ($products) => $products->total() === 2);
+        $this->assertSame(['Gạo ST25 túi 5kg'], $names($this->get(route('products.index', ['brand' => 'neptune']))));
+
+        $under50 = $this->get(route('products.index', ['price' => 'duoi-50k']));
+        $this->assertTrue($under50->viewData('products')->every(fn ($p) => $p->regular_price < 50000));
+        $this->assertSame(4, $under50->viewData('products')->total());
+
+        $custom = $this->get(route('products.index', ['min_price' => 200000, 'max_price' => 100000, 'sort' => 'price_asc']));
+        $prices = $custom->viewData('products')->getCollection()->map(fn ($p) => $p->regular_price)->all();
+        $this->assertNotEmpty($prices);
+        $this->assertTrue(collect($prices)->every(fn ($price) => $price >= 100000 && $price <= 200000));
+        $this->assertSame($prices, collect($prices)->sort()->values()->all());
+
+        $this->get(route('products.index', ['sale' => 1, 'category' => 'rau-cu-qua']))->assertOk()
+            ->assertViewHas('products', fn ($products) => $products->every(fn ($p) => $p->regular_price < (float) $p->selling_price))
+            ->assertSee('Đang giảm giá');
+    }
+
+    public function test_business_errors_return_to_page_with_toast_and_errors_have_branded_pages(): void
+    {
+        $product = Product::with('inventoryLots')->firstOrFail();
+        InventoryLot::where('product_id', $product->id)->update(['quantity' => 2, 'reserved_quantity' => 0]);
+
+        $this->from(route('products.index'))->post(route('cart.store', $product), ['quantity' => 5])
+            ->assertRedirect(route('products.index'))->assertSessionHasErrors(['message' => 'Số lượng yêu cầu vượt quá tồn kho.']);
+        $this->get(route('products.index'))->assertSee('flash flash-error', false)->assertSee('Số lượng yêu cầu vượt quá tồn kho.');
+
+        $this->get('/khong-ton-tai')->assertNotFound()->assertSee('Trang này đã “hết hàng”', false);
     }
 }

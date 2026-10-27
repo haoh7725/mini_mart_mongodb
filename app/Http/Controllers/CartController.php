@@ -22,6 +22,9 @@ class CartController extends Controller
         abort_if($quantity > $product->stock, 422, 'Số lượng yêu cầu vượt quá tồn kho.');
         $cart[$product->id] = $quantity;
         $request->session()->put('cart', $cart);
+        if ($request->boolean('buy_now')) {
+            return redirect()->route('cart.index')->with('success', 'Đã thêm '.$product->name.' vào giỏ hàng.');
+        }
 
         return back()->with('success', 'Đã thêm '.$product->name.' vào giỏ hàng.');
     }
@@ -50,12 +53,13 @@ class CartController extends Controller
     public function cartData(Request $request): array
     {
         $cart = $request->session()->get('cart', []);
-        $products = Product::query()->with('inventoryLots')->whereIn('id', array_keys($cart))->get();
-        $items = $products->map(fn ($product) => [
-            'product' => $product,
-            'quantity' => (int) $cart[$product->id],
-            'line_total' => $product->current_price * $cart[$product->id],
-        ]);
+        $products = Product::query()->with('inventoryLots.rescueCampaign')->whereIn('id', array_keys($cart))->get();
+        $items = $products->map(function ($product) use ($cart) {
+            $quantity = (int) $cart[$product->id];
+            $lineTotal = $product->priceFor($quantity);
+
+            return ['product' => $product, 'quantity' => $quantity, 'unit_price' => $lineTotal / max(1, $quantity), 'line_total' => $lineTotal];
+        });
 
         return ['items' => $items, 'subtotal' => $items->sum('line_total')];
     }

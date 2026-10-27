@@ -88,6 +88,8 @@ class DatabaseSeeder extends Seeder
             );
         }
 
+        $this->call(BrandSeeder::class);
+
         if (! app()->environment('testing')) {
             $this->call(DemoDataSeeder::class);
         }

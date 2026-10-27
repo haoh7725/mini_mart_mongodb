@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Order;
+use App\Services\OrderService;
 use App\Services\VnpayService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -49,18 +50,23 @@ class VnpayController extends Controller
 
         DB::transaction(function () use ($order, $params, $successful) {
             $payment = DB::table('payments')->where('order_id', $order->id)->where('method', 'online')->lockForUpdate()->first();
-            if (! $payment || $payment->status === 'completed') {
+            if (! $payment || $payment->status !== 'pending') {
                 return;
             }
 
+            // VNPay trả TransactionNo = 0 cho giao dịch hủy, không được ghi vào cột unique.
+            $transactionNo = $params['vnp_TransactionNo'] ?? null;
             DB::table('payments')->where('id', $payment->id)->update([
                 'status' => $successful ? 'completed' : 'failed',
-                'transaction_id' => $params['vnp_TransactionNo'] ?? null,
+                'transaction_id' => $successful && filled($transactionNo) && $transactionNo !== '0' ? $transactionNo : null,
                 'paid_at' => $successful ? now() : null,
                 'metadata' => json_encode($params, JSON_UNESCAPED_UNICODE),
                 'updated_at' => now(),
             ]);
             $order->update(['payment_status' => $successful ? 'paid' : 'failed']);
+            if (! $successful) {
+                app(OrderService::class)->cancel($order);
+            }
         });
 
         return [

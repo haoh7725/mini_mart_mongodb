@@ -10,4 +10,4 @@
 @if(auth()->user()->hasRole('super-admin'))<a class="{{ request()->routeIs('admin.users.*')?'active':'' }}" href="{{ route('admin.users.index') }}">Tài khoản & phân quyền</a>@endif
 </nav><div class="admin-sidebar-footer"><a href="{{ route('home') }}">← Xem cửa hàng</a><form method="post" action="{{ route('logout') }}">@csrf<button>Đăng xuất</button></form></div></aside>
 <main id="admin-main" class="admin-main"><header class="admin-topbar"><button class="admin-menu" type="button" aria-label="Mở menu" onclick="document.body.classList.toggle('admin-nav-open')">☰</button><div><b>@yield('heading','Quản trị')</b><small>{{ auth()->user()->name }} · {{ auth()->user()->role?->name }}</small></div></header>
-<div class="admin-content">@if(session('success'))<div class="admin-alert success" role="status">{{ session('success') }}</div>@endif @if($errors->any())<div class="admin-alert danger" role="alert"><b>Cần kiểm tra lại:</b> {{ $errors->first() }}</div>@endif @yield('content')</div></main></div></body></html>
+<div class="admin-content">@yield('content')</div></main></div><x-flash-messages /><x-confirm-dialog /></body></html>

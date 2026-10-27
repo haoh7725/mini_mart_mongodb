@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 
@@ -32,7 +33,7 @@ class AddressController extends Controller
                     ->map(fn (array $item) => ['code' => $item['code'], 'name' => $item['name']])
                     ->values()->all();
             });
-        } catch (ConnectionException $exception) {
+        } catch (ConnectionException|RequestException $exception) {
             abort(503, 'Dịch vụ địa chỉ đang tạm thời gián đoạn.');
         }
     }

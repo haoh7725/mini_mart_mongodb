@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\CartController;
+use App\Http\Controllers\GoogleAuthController;
 use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\VnpayController;
 use App\Http\Controllers\StoreController;
@@ -43,6 +44,8 @@ Route::middleware('guest')->group(function () {
     Route::post('/dang-nhap', [AuthController::class, 'login'])->middleware('throttle:5,1');
     Route::get('/dang-ky', [AuthController::class, 'showRegister'])->name('register');
     Route::post('/dang-ky', [AuthController::class, 'register'])->middleware('throttle:5,1');
+    Route::get('/dang-nhap/google', [GoogleAuthController::class, 'redirect'])->name('auth.google');
+    Route::get('/dang-nhap/google/callback', [GoogleAuthController::class, 'callback'])->middleware('throttle:10,1')->name('auth.google.callback');
     Route::get('/quen-mat-khau', [AuthController::class, 'showForgotPassword'])->name('password.request');
     Route::post('/quen-mat-khau', [AuthController::class, 'sendResetLink'])->middleware('throttle:3,1')->name('password.email');
     Route::get('/dat-lai-mat-khau/{token}', [AuthController::class, 'showResetPassword'])->name('password.reset');
@@ -56,6 +59,7 @@ Route::prefix('tai-khoan')->name('account.')->middleware('auth')->group(function
     Route::get('/don-hang', [AccountController::class, 'orders'])->name('orders.index');
     Route::get('/don-hang/{code}', [AccountController::class, 'showOrder'])->name('orders.show');
     Route::post('/don-hang/{code}/mua-lai', [AccountController::class, 'reorder'])->name('orders.reorder');
+    Route::post('/don-hang/{code}/huy', [AccountController::class, 'cancelOrder'])->name('orders.cancel');
     Route::post('/danh-gia/{item}', [ReviewController::class, 'store'])->name('reviews.store');
 });
 

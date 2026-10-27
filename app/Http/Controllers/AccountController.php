@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Order;
 use App\Models\Product;
+use App\Services\OrderService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -35,6 +36,9 @@ class AccountController extends Controller
         ]);
 
         $user->fill(collect($data)->only(['name', 'email', 'phone'])->all());
+        if ($user->isDirty('email')) {
+            $user->email_verified_at = null;
+        }
         if (filled($data['password'] ?? null)) {
             $user->password = Hash::make($data['password']);
         }
@@ -69,24 +73,46 @@ class AccountController extends Controller
         foreach ($order->items as $item) {
             $product = $products->get($item->product_id);
             if (! $product || $product->stock < 1) { $skipped[] = $item->product_name; continue; }
-            $quantity = min((int) $item->quantity, (int) $product->stock);
-            $cart[$product->id] = min((int) ($cart[$product->id] ?? 0) + $quantity, (int) $product->stock);
-            $added += $quantity;
+            $current = (int) ($cart[$product->id] ?? 0);
+            $cart[$product->id] = min(99, $current + (int) $item->quantity, (int) $product->stock);
+            $added += max(0, $cart[$product->id] - $current);
         }
         $request->session()->put('cart', $cart);
         $message = "Đã thêm {$added} sản phẩm vào giỏ.".($skipped ? ' Bỏ qua: '.implode(', ', $skipped).'.' : '');
         return redirect()->route('cart.index')->with('success', $message);
     }
 
+    public function cancelOrder(Request $request, string $code, OrderService $orders)
+    {
+        $data = $request->validate([
+            'reason' => ['required', Rule::in(Order::CANCEL_REASONS)],
+            'reason_detail' => ['nullable', 'string', 'max:200'],
+        ], ['reason.required' => 'Vui lòng chọn lý do hủy đơn.']);
+        $order = $this->ordersFor($request)->where('code', $code)->firstOrFail();
+
+        $cancelled = DB::transaction(function () use ($order, $data, $orders) {
+            // Khóa đơn để shop không chuyển sang "đang giao" cùng lúc khách bấm hủy.
+            $locked = Order::query()->lockForUpdate()->findOrFail($order->id);
+            if (! $locked->canBeCancelledByCustomer()) {
+                return false;
+            }
+            $orders->cancel($locked);
+            $reason = $data['reason'].(filled($data['reason_detail'] ?? null) ? ': '.$data['reason_detail'] : '');
+            $locked->update(['cancelled_at' => now(), 'cancel_reason' => $reason]);
+            // Thanh toán online còn treo thì đóng lại, để callback VNPay đến muộn không ghi nhận nữa.
+            DB::table('payments')->where('order_id', $locked->id)->where('status', 'pending')
+                ->update(['status' => 'failed', 'updated_at' => now()]);
+
+            return true;
+        });
+
+        return $cancelled
+            ? redirect()->route('account.orders.show', $code)->with('success', 'Đã hủy đơn hàng '.$code.'.')
+            : back()->withErrors(['order' => 'Đơn hàng này không thể hủy nữa. Vui lòng liên hệ hotline 1900 6868.']);
+    }
+
     private function ordersFor(Request $request)
     {
-        $user = $request->user();
-
-        return Order::query()->where(function ($query) use ($user) {
-            $query->where('user_id', $user->id)
-                ->orWhere(function ($legacy) use ($user) {
-                    $legacy->whereNull('user_id')->where('customer_email', $user->email);
-                });
-        });
+        return Order::query()->ownedBy($request->user());
     }
 }
