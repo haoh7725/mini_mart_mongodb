@@ -418,4 +418,15 @@ class StorefrontTest extends TestCase
             ->assertSee('Đang giảm giá');
     }
 
+    public function test_business_errors_return_to_page_with_toast_and_errors_have_branded_pages(): void
+    {
+        $product = Product::with('inventoryLots')->firstOrFail();
+        InventoryLot::where('product_id', $product->id)->update(['quantity' => 2, 'reserved_quantity' => 0]);
+
+        $this->from(route('products.index'))->post(route('cart.store', $product), ['quantity' => 5])
+            ->assertRedirect(route('products.index'))->assertSessionHasErrors(['message' => 'Số lượng yêu cầu vượt quá tồn kho.']);
+        $this->get(route('products.index'))->assertSee('flash flash-error', false)->assertSee('Số lượng yêu cầu vượt quá tồn kho.');
+
+        $this->get('/khong-ton-tai')->assertNotFound()->assertSee('Trang này đã “hết hàng”', false);
+    }
 }

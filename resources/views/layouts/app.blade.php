@@ -59,10 +59,8 @@
         </div>
     </header>
 
-    @if(session('success'))
-        <div class="toast" role="status">{{ session('success') }}</div>
-    @endif
-    @if($errors->any())<div class="toast error" role="alert">{{ $errors->first() }}</div>@endif
+    <x-flash-messages />
+    <x-confirm-dialog />
 
     <main id="main">@yield('content')</main>
 

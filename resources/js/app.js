@@ -81,4 +81,87 @@ const initAiChatbox = () => {
     });
 };
 
-document.addEventListener('DOMContentLoaded', initAiChatbox);
+// Toast thông báo: tự ẩn sau data-timeout, tạm dừng khi rê chuột hoặc focus vào.
+const dismissFlash = flash => {
+    if (flash.classList.contains('is-leaving')) return;
+    flash.classList.add('is-leaving');
+    flash.addEventListener('animationend', () => flash.remove(), { once: true });
+};
+
+const armFlash = flash => {
+    const timeout = Number(flash.dataset.timeout || 5000);
+    flash.style.setProperty('--flash-duration', `${timeout}ms`);
+    let remaining = timeout;
+    let started = Date.now();
+    let timer = window.setTimeout(() => dismissFlash(flash), remaining);
+    const pause = () => { window.clearTimeout(timer); remaining -= Date.now() - started; flash.classList.add('is-paused'); };
+    const resume = () => { started = Date.now(); timer = window.setTimeout(() => dismissFlash(flash), Math.max(remaining, 1200)); flash.classList.remove('is-paused'); };
+    flash.addEventListener('mouseenter', pause);
+    flash.addEventListener('mouseleave', resume);
+    flash.addEventListener('focusin', pause);
+    flash.addEventListener('focusout', resume);
+    flash.querySelector('[data-flash-close]')?.addEventListener('click', () => dismissFlash(flash));
+};
+
+// Cho JS khác hiện toast: window.showToast('error', 'Nội dung', 'Tiêu đề')
+window.showToast = (type, message, title) => {
+    const stack = document.getElementById('flash-stack');
+    if (!stack) return;
+    const titles = { success: 'Thành công', info: 'Thông báo', warning: 'Lưu ý', error: 'Có lỗi xảy ra' };
+    const icon = document.querySelector(`#flash-icons svg[data-type="${type}"]`)?.innerHTML ?? '';
+    const flash = document.createElement('div');
+    flash.className = `flash flash-${type}`;
+    flash.setAttribute('role', type === 'error' ? 'alert' : 'status');
+    flash.dataset.timeout = type === 'error' ? 8000 : 5000;
+    flash.innerHTML = `<span class="flash-icon" aria-hidden="true"><svg viewBox="0 0 24 24">${icon}</svg></span>`
+        + `<div class="flash-body"><b>${escapeHtml(title ?? titles[type])}</b><p>${escapeHtml(message)}</p></div>`
+        + '<button type="button" class="flash-close" data-flash-close aria-label="Đóng thông báo"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 7 10 10M17 7 7 17"/></svg></button>'
+        + '<span class="flash-progress" aria-hidden="true"></span>';
+    stack.append(flash);
+    armFlash(flash);
+};
+
+// Hộp xác nhận: <form data-confirm="Nội dung" data-confirm-title="..." data-confirm-ok="...">
+const initConfirmDialog = () => {
+    const dialog = document.getElementById('confirm-dialog');
+    if (!dialog || typeof dialog.showModal !== 'function') return;
+    const title = dialog.querySelector('#confirm-title');
+    const message = dialog.querySelector('#confirm-message');
+    const ok = dialog.querySelector('[data-confirm-ok]');
+    let pendingForm = null;
+    let opener = null;
+
+    document.addEventListener('submit', event => {
+        const form = event.target;
+        if (!(form instanceof HTMLFormElement) || !form.dataset.confirm || form.dataset.confirmed === '1') return;
+        event.preventDefault();
+        pendingForm = form;
+        opener = event.submitter ?? document.activeElement;
+        title.textContent = form.dataset.confirmTitle || 'Bạn chắc chắn chứ?';
+        message.textContent = form.dataset.confirm;
+        ok.textContent = form.dataset.confirmOk || 'Đồng ý';
+        dialog.returnValue = '';
+        dialog.showModal();
+        dialog.querySelector('[data-confirm-cancel]').focus();
+    }, true);
+
+    dialog.addEventListener('close', () => {
+        const form = pendingForm;
+        pendingForm = null;
+        if (dialog.returnValue === 'ok' && form) {
+            form.dataset.confirmed = '1';
+            form.requestSubmit();
+            delete form.dataset.confirmed;
+        } else {
+            opener?.focus?.();
+        }
+    });
+    // Bấm ra ngoài hộp để đóng.
+    dialog.addEventListener('click', event => { if (event.target === dialog) dialog.close('cancel'); });
+};
+
+document.addEventListener('DOMContentLoaded', () => {
+    initAiChatbox();
+    document.querySelectorAll('[data-flash]').forEach(armFlash);
+    initConfirmDialog();
+});

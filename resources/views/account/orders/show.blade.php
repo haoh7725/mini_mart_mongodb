@@ -36,7 +36,7 @@
         @elseif($order->canBeCancelledByCustomer())
             <details class="cancel-order" id="huy-don" @if($errors->has('reason') || request()->query('huy')) open @endif>
                 <summary>Hủy đơn hàng</summary>
-                <form method="post" action="{{ route('account.orders.cancel', $order->code) }}" onsubmit="return confirm('Bạn chắc chắn muốn hủy đơn {{ $order->code }}?')">@csrf
+                <form method="post" action="{{ route('account.orders.cancel', $order->code) }}" data-confirm="Đơn {{ $order->code }} sẽ bị hủy và sản phẩm được trả lại kho. Thao tác này không thể hoàn tác." data-confirm-title="Hủy đơn hàng này?" data-confirm-ok="Hủy đơn">@csrf
                     <fieldset><legend>Vì sao bạn muốn hủy đơn?</legend>
                         @foreach(\App\Models\Order::CANCEL_REASONS as $reason)
                             <label><input type="radio" name="reason" value="{{ $reason }}" @checked(old('reason') === $reason) required> {{ $reason }}</label>
