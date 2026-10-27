@@ -35,6 +35,9 @@ class AccountController extends Controller
         ]);
 
         $user->fill(collect($data)->only(['name', 'email', 'phone'])->all());
+        if ($user->isDirty('email')) {
+            $user->email_verified_at = null;
+        }
         if (filled($data['password'] ?? null)) {
             $user->password = Hash::make($data['password']);
         }
@@ -69,9 +72,9 @@ class AccountController extends Controller
         foreach ($order->items as $item) {
             $product = $products->get($item->product_id);
             if (! $product || $product->stock < 1) { $skipped[] = $item->product_name; continue; }
-            $quantity = min((int) $item->quantity, (int) $product->stock);
-            $cart[$product->id] = min((int) ($cart[$product->id] ?? 0) + $quantity, (int) $product->stock);
-            $added += $quantity;
+            $current = (int) ($cart[$product->id] ?? 0);
+            $cart[$product->id] = min(99, $current + (int) $item->quantity, (int) $product->stock);
+            $added += max(0, $cart[$product->id] - $current);
         }
         $request->session()->put('cart', $cart);
         $message = "Đã thêm {$added} sản phẩm vào giỏ.".($skipped ? ' Bỏ qua: '.implode(', ', $skipped).'.' : '');
@@ -80,13 +83,6 @@ class AccountController extends Controller
 
     private function ordersFor(Request $request)
     {
-        $user = $request->user();
-
-        return Order::query()->where(function ($query) use ($user) {
-            $query->where('user_id', $user->id)
-                ->orWhere(function ($legacy) use ($user) {
-                    $legacy->whereNull('user_id')->where('customer_email', $user->email);
-                });
-        });
+        return Order::query()->ownedBy($request->user());
     }
 }

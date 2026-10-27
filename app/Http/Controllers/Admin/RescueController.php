@@ -29,18 +29,20 @@ class RescueController extends Controller
 
     public function store(Request $request, InventoryLot $lot)
     {
-        abort_if(! $lot->expires_at || $lot->expires_at->isPast(), 422, 'Lô hàng đã hết hạn.');
+        abort_if(! $lot->expires_at || $lot->expires_at->lt(today()), 422, 'Lô hàng đã hết hạn.');
         $data = $request->validate(['discount_percent' => ['required', 'integer', 'min:5', 'max:80']]);
         $product = $lot->product;
         $originalPrice = (float) ($product->sale_price ?: $product->selling_price);
-        RescueCampaign::query()->updateOrCreate(['inventory_lot_id' => $lot->id], [
+        $campaign = RescueCampaign::query()->firstOrNew(['inventory_lot_id' => $lot->id]);
+        // Khi mở lại, giữ số đã giải cứu và cộng thêm phần tồn còn lại của lô.
+        $campaign->fill([
             'product_id' => $product->id,
             'discount_percent' => $data['discount_percent'],
             'original_price' => $originalPrice,
             'rescue_price' => round($originalPrice * (100 - $data['discount_percent']) / 100, -3),
-            'initial_quantity' => max(0, $lot->quantity - $lot->reserved_quantity),
+            'initial_quantity' => (float) $campaign->rescued_quantity + max(0, $lot->quantity - $lot->reserved_quantity),
             'is_active' => true, 'starts_at' => now(), 'ends_at' => $lot->expires_at->endOfDay(),
-        ]);
+        ])->save();
 
         return back()->with('success', 'Đã mở chiến dịch giải cứu cho '.$product->name.'.');
     }

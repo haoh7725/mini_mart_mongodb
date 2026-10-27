@@ -16,6 +16,17 @@ class RescueCampaign extends Model
     public function product() { return $this->belongsTo(Product::class); }
     public function inventoryLot() { return $this->belongsTo(InventoryLot::class); }
 
+    public function isRunning(): bool
+    {
+        return $this->is_active && $this->remaining_quantity > 0
+            && $this->starts_at <= now() && $this->ends_at >= now();
+    }
+
+    public function getRemainingQuantityAttribute(): float
+    {
+        return max(0, (float) $this->initial_quantity - (float) $this->rescued_quantity);
+    }
+
     public function scopeActive($query)
     {
         return $query->where('is_active', true)->whereColumn('rescued_quantity', '<', 'initial_quantity')

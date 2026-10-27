@@ -10,7 +10,7 @@ class ReviewController extends Controller
 {
     public function store(Request $request, OrderItem $item)
     {
-        abort_unless($item->order?->user_id === $request->user()->id && $item->order->status === 'completed', 403);
+        abort_unless($item->order?->isOwnedBy($request->user()) && $item->order->status === 'completed', 403);
         abort_if(! $item->product_id, 422, 'Sản phẩm này không còn tồn tại.');
         $data = $request->validate([
             'rating' => ['required', 'integer', 'between:1,5'],
