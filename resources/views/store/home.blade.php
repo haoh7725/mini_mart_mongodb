@@ -39,4 +39,5 @@
 </section>
 
 <section class="container promo"><div><span>ƯU ĐÃI THÀNH VIÊN MỚI</span><h2>Giảm 15% đơn hàng đầu tiên</h2><p>Nhập mã <b>WELCOME15</b> khi thanh toán. Áp dụng cho đơn từ 300.000đ.</p></div><a class="button light" href="{{ route('products.index') }}">Chọn sản phẩm</a></section>
+<x-halloween-popup />
 @endsection
