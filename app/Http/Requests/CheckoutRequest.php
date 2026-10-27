@@ -8,6 +8,19 @@ class CheckoutRequest extends FormRequest
 {
     public function authorize(): bool { return true; }
 
+    protected function prepareForValidation(): void
+    {
+        if ($this->filled('address_detail') && $this->filled('province_name') && $this->filled('ward_name')) {
+            $this->merge([
+                'shipping_address' => collect([
+                    $this->string('address_detail')->trim()->toString(),
+                    $this->string('ward_name')->trim()->toString(),
+                    $this->string('province_name')->trim()->toString(),
+                ])->filter()->implode(', '),
+            ]);
+        }
+    }
+
     public function rules(): array
     {
         return [
@@ -15,8 +28,11 @@ class CheckoutRequest extends FormRequest
             'customer_phone' => ['required', 'regex:/^[0-9+(). -]{8,20}$/'],
             'customer_email' => ['nullable', 'email', 'max:160'],
             'shipping_address' => ['required', 'string', 'min:10', 'max:500'],
+            'address_detail' => ['nullable', 'string', 'max:250'],
+            'province_name' => ['nullable', 'string', 'max:100'],
+            'ward_name' => ['nullable', 'string', 'max:100'],
             'customer_note' => ['nullable', 'string', 'max:500'],
-            'payment' => ['required', 'in:cod'],
+            'payment' => ['required', 'in:cod,vnpay'],
         ];
     }
 

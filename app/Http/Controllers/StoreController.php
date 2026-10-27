@@ -36,8 +36,10 @@ class StoreController extends Controller
     {
         abort_unless($product->is_active, 404);
         $product->load(['category', 'inventoryLots', 'images']);
+        $reviews = $product->reviews()->with('user')->where('status', 'approved')->latest()->paginate(8);
+        $ratingSummary = ['average' => round((float) $product->reviews()->where('status', 'approved')->avg('rating'), 1), 'count' => $product->reviews()->where('status', 'approved')->count()];
         $related = Product::query()->with(['inventoryLots', 'images'])->where('is_active', true)->where('category_id', $product->category_id)->whereKeyNot($product->id)->take(4)->get();
 
-        return view('store.show', compact('product', 'related'));
+        return view('store.show', compact('product', 'related', 'reviews', 'ratingSummary'));
     }
 }

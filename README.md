@@ -12,12 +12,13 @@
 - Phân quyền Super Admin, Quản lý, Nhân viên và Khách hàng.
 - Dashboard quản trị và khu vực `/admin` responsive.
 - CRUD danh mục và sản phẩm, upload ảnh, xóa mềm và khôi phục.
+- Lưu ảnh trên ổ đĩa local hoặc Supabase Storage qua giao thức S3.
 - Tìm kiếm, lọc và cập nhật trạng thái đơn hàng.
 - Kiểm tra tồn kho khi thêm giỏ/checkout, trừ kho theo lô và ghi lịch sử xuất kho.
 - Tạo bản ghi thanh toán COD khi đặt hàng.
 - Quản lý sản phẩm, danh mục, tồn kho theo kho và lô hàng ở tầng dữ liệu.
 - Seeder cung cấp danh mục, sản phẩm và tài khoản mẫu.
-- Giao diện responsive sử dụng Blade và Tailwind CSS.
+- Giao diện responsive sử dụng Blade và Bootstrap 5.
 
 ## Công nghệ
 
@@ -25,7 +26,7 @@
 - Laravel 12
 - SQLite (mặc định) hoặc MySQL 8
 - Node.js và npm
-- Vite 7, Tailwind CSS 4
+- Vite 7, Bootstrap 5
 
 ## Cài đặt nhanh
 
@@ -113,6 +114,19 @@ composer test
 ```
 
 Bộ test kiểm tra trang cửa hàng, bảo vệ route quản trị, phân quyền khách hàng và quy trình checkout tạo đơn/thanh toán/trừ kho.
+
+## Thanh toán VNPay Sandbox
+
+Đăng ký merchant thử nghiệm tại `https://sandbox.vnpayment.vn/devreg`, sau đó thêm thông tin được VNPay gửi vào `.env`:
+
+```env
+VNPAY_URL=https://sandbox.vnpayment.vn/paymentv2/vpcpay.html
+VNPAY_TMN_CODE=ma_website_cua_ban
+VNPAY_HASH_SECRET=chuoi_bi_mat_cua_ban
+VNPAY_RETURN_URL=
+```
+
+Khi chạy local có thể để trống `VNPAY_RETURN_URL`; ứng dụng tự tạo URL `/thanh-toan/vnpay/return`. VNPay IPN chỉ gọi được khi website có địa chỉ HTTPS công khai; URL IPN là `/thanh-toan/vnpay/ipn`.
 
 ## Khu vực quản trị
 

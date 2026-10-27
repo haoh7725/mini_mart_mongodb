@@ -13,7 +13,9 @@ return [
     |
     */
 
-    'default' => env('FILESYSTEM_DISK', 'local'),
+    'default' => env('FILESYSTEM_DISK', 'public'),
+
+    'media' => env('MEDIA_DISK', env('FILESYSTEM_DISK', 'public')),
 
     /*
     |--------------------------------------------------------------------------
@@ -58,6 +60,19 @@ return [
             'use_path_style_endpoint' => env('AWS_USE_PATH_STYLE_ENDPOINT', false),
             'throw' => false,
             'report' => false,
+        ],
+
+        'supabase' => [
+            'driver' => 's3',
+            'key' => env('SUPABASE_S3_KEY'),
+            'secret' => env('SUPABASE_S3_SECRET'),
+            'region' => env('SUPABASE_S3_REGION', 'ap-south-1'),
+            'bucket' => env('SUPABASE_S3_BUCKET', 'mini-mart-images'),
+            'url' => env('SUPABASE_PUBLIC_URL'),
+            'endpoint' => env('SUPABASE_S3_ENDPOINT'),
+            'use_path_style_endpoint' => true,
+            'throw' => true,
+            'report' => true,
         ],
 
     ],

@@ -28,7 +28,7 @@
     <div class="section-heading"><div><span class="eyebrow">Tìm theo nhu cầu</span><h2>Danh mục nổi bật</h2></div><a href="{{ route('products.index') }}">Xem tất cả →</a></div>
     <div class="category-grid">
         @foreach($categories as $category)
-            <a class="category-card cat-{{ ($category->id % 4) + 1 }}" href="{{ route('products.index', ['category' => $category->slug]) }}"><span>{{ mb_substr($category->name, 0, 1) }}</span><div><h3>{{ $category->name }}</h3><p>{{ $category->products_count ?? 'Khám phá ngay' }}</p></div></a>
+            <a class="category-card cat-{{ ($category->id % 4) + 1 }}" href="{{ route('products.index', ['category' => $category->slug]) }}"><span>@if($category->image_url)<img src="{{ $category->image_url }}" alt="{{ $category->name }}">@else{{ mb_substr($category->name, 0, 1) }}@endif</span><div><h3>{{ $category->name }}</h3><p>{{ $category->products_count ?? 'Khám phá ngay' }}</p></div></a>
         @endforeach
     </div>
 </section>

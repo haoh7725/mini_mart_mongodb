@@ -25,7 +25,8 @@ class ProductRequest extends FormRequest
             'sale_price' => ['nullable', 'numeric', 'min:0', 'lt:selling_price'],
             'sale_starts_at' => ['nullable', 'date'],
             'sale_ends_at' => ['nullable', 'date', 'after_or_equal:sale_starts_at'],
-            'image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
+            'images' => ['nullable', 'array', 'max:8'],
+            'images.*' => ['image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
             'is_featured' => ['nullable', 'boolean'],
             'is_active' => ['nullable', 'boolean'],
         ];
@@ -36,7 +37,9 @@ class ProductRequest extends FormRequest
         return [
             'selling_price.gt' => 'Giá bán phải lớn hơn giá vốn.',
             'sale_price.lt' => 'Giá khuyến mãi phải nhỏ hơn giá bán.',
-            'image.max' => 'Ảnh sản phẩm không được vượt quá 2 MB.',
+            'images.max' => 'Mỗi lần chỉ được chọn tối đa 8 ảnh.',
+            'images.*.image' => 'Tệp đã chọn phải là hình ảnh.',
+            'images.*.max' => 'Mỗi ảnh sản phẩm không được vượt quá 2 MB.',
         ];
     }
 }

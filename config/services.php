@@ -35,4 +35,20 @@ return [
         ],
     ],
 
+    'vnpay' => [
+        'url' => env('VNPAY_URL', 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html'),
+        'tmn_code' => env('VNPAY_TMN_CODE'),
+        'hash_secret' => env('VNPAY_HASH_SECRET'),
+        'return_url' => env('VNPAY_RETURN_URL'),
+    ],
+
+    'vietnam_address' => [
+        'url' => env('VIETNAM_ADDRESS_API_URL', 'https://production.cas.so/address-kit/2025-07-01'),
+    ],
+
+    'gemini' => [
+        'api_key' => env('GEMINI_API_KEY'),
+        'model' => env('GEMINI_MODEL', 'gemini-3.5-flash-lite'),
+    ],
+
 ];

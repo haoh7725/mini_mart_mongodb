@@ -26,13 +26,28 @@ class Product extends Model
         return $this->hasMany(ProductImage::class)->orderBy('sort_order');
     }
 
+    public function rescueCampaigns() { return $this->hasMany(RescueCampaign::class); }
+    public function reviews() { return $this->hasMany(Review::class); }
+
+    public function activeRescueCampaign()
+    {
+        return $this->hasOne(RescueCampaign::class)->active()->orderBy('rescue_price');
+    }
+
     public function getPrimaryImageAttribute(): ?string
     {
         return $this->images->firstWhere('is_primary', true)?->path ?? $this->images->first()?->path;
     }
 
+    public function getPrimaryImageUrlAttribute(): ?string
+    {
+        return $this->images->firstWhere('is_primary', true)?->url ?? $this->images->first()?->url;
+    }
+
     public function getCurrentPriceAttribute(): float
     {
+        $rescuePrice = $this->activeRescueCampaign?->rescue_price;
+        if ($rescuePrice !== null) return (float) $rescuePrice;
         $saleIsActive = $this->sale_price !== null
             && ($this->sale_starts_at === null || $this->sale_starts_at->isPast())
             && ($this->sale_ends_at === null || $this->sale_ends_at->isFuture());
