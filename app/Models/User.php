@@ -25,6 +25,7 @@ class User extends Authenticatable
         'email',
         'phone',
         'avatar',
+        'assistant_pet',
         'role_id',
         'is_active',
         'password',

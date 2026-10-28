@@ -6,6 +6,7 @@ use App\Models\Order;
 use App\Models\Product;
 use App\Models\ReturnRequest;
 use App\Services\OrderService;
+use App\Support\AssistantPet;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -46,6 +47,14 @@ class AccountController extends Controller
         $user->save();
 
         return back()->with('success', 'Đã cập nhật hồ sơ cá nhân.');
+    }
+
+    public function updatePet(Request $request)
+    {
+        $data = $request->validate(['assistant_pet' => ['required', Rule::in(array_keys(AssistantPet::PETS))]]);
+        $request->user()->update($data);
+
+        return back()->with('success', AssistantPet::PETS[$data['assistant_pet']]['name'].' sẽ đồng hành cùng bạn!');
     }
 
     public function orders(Request $request)

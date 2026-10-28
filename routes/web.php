@@ -92,6 +92,7 @@ Route::middleware('auth')->group(function () {
 Route::prefix('tai-khoan')->name('account.')->middleware('auth')->group(function () {
     Route::get('/ho-so', [AccountController::class, 'profile'])->name('profile');
     Route::patch('/ho-so', [AccountController::class, 'updateProfile'])->name('profile.update');
+    Route::patch('/ho-so/thu-cung', [AccountController::class, 'updatePet'])->name('pet.update');
 
     Route::get('/don-hang', [AccountController::class, 'orders'])->name('orders.index');
     Route::get('/don-hang/{code}', [AccountController::class, 'showOrder'])->name('orders.show');

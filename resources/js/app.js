@@ -29,7 +29,8 @@ const initAiChatbox = () => {
     const addMessage = (role, html, extraClass = '') => {
         const article = document.createElement('article');
         article.className = `ai-widget-message ${role} ${extraClass}`.trim();
-        article.innerHTML = `<span class="ai-widget-avatar">${role === 'assistant' ? 'M' : 'B'}</span><div>${html}</div>`;
+        const avatar = role === 'assistant' ? document.getElementById('ai-pet-avatar')?.innerHTML ?? 'M' : 'B';
+        article.innerHTML = `<span class="ai-widget-avatar">${avatar}</span><div>${html}</div>`;
         messages.appendChild(article);
         messages.scrollTop = messages.scrollHeight;
         return article;
