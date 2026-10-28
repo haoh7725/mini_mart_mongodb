@@ -9,7 +9,7 @@
 </head>
 <body>
     <a class="skip-link" href="#main">Đi tới nội dung chính</a>
-    <div class="topbar">Giao nhanh trong 2 giờ <span>•</span> Miễn phí từ 300.000đ <span>•</span> Hotline 1900 6868</div>
+    <div class="topbar">Giao nhanh trong 2 giờ <span>•</span> Miễn phí từ {{ number_format(\App\Models\Order::FREE_SHIPPING_THRESHOLD, 0, ',', '.') }}đ <span>•</span> Hotline 1900 6868</div>
     <header class="site-header">
         <div class="container header-inner">
             <a class="brand" href="{{ route('home') }}" aria-label="MiniMart - trang chủ">

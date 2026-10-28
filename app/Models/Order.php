@@ -21,6 +21,16 @@ class Order extends Model
         'Lý do khác',
     ];
 
+    public const FREE_SHIPPING_THRESHOLD = 300000;
+
+    public const SHIPPING_FEE = 25000;
+
+    // Phí giao tính trên tiền hàng trước khi áp mã giảm giá.
+    public static function shippingFeeFor(float $subtotal): int
+    {
+        return $subtotal >= self::FREE_SHIPPING_THRESHOLD ? 0 : self::SHIPPING_FEE;
+    }
+
     protected function casts(): array
     {
         return ['cancelled_at' => 'datetime'];

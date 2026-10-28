@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Order;
 use App\Models\Product;
 use Illuminate\Http\Request;
 
@@ -61,6 +62,8 @@ class CartController extends Controller
             return ['product' => $product, 'quantity' => $quantity, 'unit_price' => $lineTotal / max(1, $quantity), 'line_total' => $lineTotal];
         });
 
-        return ['items' => $items, 'subtotal' => $items->sum('line_total')];
+        $subtotal = $items->sum('line_total');
+
+        return ['items' => $items, 'subtotal' => $subtotal, 'shipping_fee' => Order::shippingFeeFor($subtotal)];
     }
 }

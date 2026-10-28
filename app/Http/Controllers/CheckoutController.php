@@ -51,7 +51,7 @@ class CheckoutController extends Controller
             $allocations = $products->mapWithKeys(fn ($product) => [$product->id => $product->allocate((int) $cart[$product->id])]);
             $lineTotals = $allocations->map(fn (array $parts) => collect($parts)->sum(fn ($part) => $part['quantity'] * $part['unit_price']));
             $subtotal = $lineTotals->sum();
-            $shippingFee = $subtotal >= 300000 ? 0 : 25000;
+            $shippingFee = Order::shippingFeeFor($subtotal);
             // Match cancellation's stock-before-coupon locking order.
             $coupon = $couponCode !== '' ? Coupon::forCode($couponCode, true) : null;
             $discount = $coupon?->discount($subtotal) ?? 0;
@@ -121,6 +121,6 @@ class CheckoutController extends Controller
         $coupon = Coupon::forCode($data['coupon_code']);
         $discount = $coupon->discount($subtotal);
 
-        return response()->json(['discount' => $discount, 'total' => $subtotal - $discount + ($subtotal >= 300000 ? 0 : 25000)]);
+        return response()->json(['discount' => $discount, 'total' => $subtotal - $discount + $cartData['shipping_fee']]);
     }
 }
