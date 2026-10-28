@@ -25,6 +25,43 @@ class Order extends Model
 
     public const SHIPPING_FEE = 25000;
 
+    // Shipper của cửa hàng giao trong 2 giờ kể từ lúc shop xác nhận đơn.
+    public const DELIVERY_HOURS = 2;
+
+    // Khách được yêu cầu trả hàng/hoàn tiền trong số ngày này sau khi nhận hàng.
+    public const RETURN_WINDOW_DAYS = 3;
+
+    public const STATUS_LABELS = [
+        'pending' => 'Chờ xác nhận',
+        'confirmed' => 'Đã xác nhận',
+        'processing' => 'Đang chuẩn bị hàng',
+        'shipping' => 'Đang giao',
+        'completed' => 'Đã giao',
+        'cancelled' => 'Đã hủy',
+        'returned' => 'Trả hàng/Hoàn tiền',
+    ];
+
+    public const PAYMENT_LABELS = ['unpaid' => 'Chưa thanh toán', 'paid' => 'Đã thanh toán', 'failed' => 'Thanh toán thất bại', 'refunded' => 'Đã hoàn tiền'];
+
+    // Đơn đã được xác nhận và chưa giao xong: có giờ giao dự kiến và shipper phụ trách.
+    public const IN_DELIVERY = ['confirmed', 'processing', 'shipping'];
+
+    public const AWAITING_PICKUP = ['confirmed', 'processing'];
+
+    // Đơn đã đóng, không cập nhật trạng thái được nữa.
+    public const CLOSED = ['cancelled', 'returned'];
+
+    // Các tab trong mục "Đơn hàng đã mua" của khách, giống cách Shopee nhóm trạng thái.
+    public const CUSTOMER_TABS = [
+        'all' => 'Tất cả',
+        'pending' => 'Chờ xác nhận',
+        'pickup' => 'Chờ lấy hàng',
+        'shipping' => 'Chờ giao hàng',
+        'completed' => 'Đã giao',
+        'cancelled' => 'Đã hủy',
+        'returns' => 'Trả hàng/Hoàn tiền',
+    ];
+
     // Phí giao tính trên tiền hàng trước khi áp mã giảm giá.
     public static function shippingFeeFor(float $subtotal): int
     {
@@ -33,7 +70,81 @@ class Order extends Model
 
     protected function casts(): array
     {
-        return ['cancelled_at' => 'datetime'];
+        return ['cancelled_at' => 'datetime', 'estimated_delivery_at' => 'datetime', 'delivered_at' => 'datetime'];
+    }
+
+    public function shipper()
+    {
+        return $this->belongsTo(User::class, 'shipper_id');
+    }
+
+    public function trackingEvents()
+    {
+        return $this->hasMany(OrderTrackingEvent::class)->latest()->latest('id');
+    }
+
+    public function returnRequest()
+    {
+        return $this->hasOne(ReturnRequest::class);
+    }
+
+    public function latestTrackingEvent()
+    {
+        return $this->hasOne(OrderTrackingEvent::class)->latestOfMany();
+    }
+
+    public function statusLabel(): string
+    {
+        return self::STATUS_LABELS[$this->status] ?? $this->status;
+    }
+
+    // Đơn đang chờ shop duyệt trả hàng thì hiện trạng thái yêu cầu thay cho trạng thái đơn.
+    public function displayStatusLabel(): string
+    {
+        return $this->returnRequest && $this->status !== 'returned'
+            ? ReturnRequest::STATUS_LABELS[$this->returnRequest->status]
+            : $this->statusLabel();
+    }
+
+    public function paymentLabel(): string
+    {
+        return self::PAYMENT_LABELS[$this->payment_status] ?? $this->payment_status;
+    }
+
+    public function isInDelivery(): bool
+    {
+        return in_array($this->status, self::IN_DELIVERY, true);
+    }
+
+    public function isClosed(): bool
+    {
+        return in_array($this->status, self::CLOSED, true);
+    }
+
+    public function scopePending($query)
+    {
+        return $query->where('status', 'pending');
+    }
+
+    public function scopeForCustomerTab($query, string $tab)
+    {
+        return match ($tab) {
+            'pending' => $query->where('status', 'pending'),
+            'pickup' => $query->whereIn('status', self::AWAITING_PICKUP),
+            'shipping' => $query->where('status', 'shipping'),
+            'completed' => $query->where('status', 'completed')->whereDoesntHave('returnRequest'),
+            'cancelled' => $query->where('status', 'cancelled'),
+            'returns' => $query->where(fn ($q) => $q->where('status', 'returned')->orWhereHas('returnRequest')),
+            default => $query,
+        };
+    }
+
+    public function canRequestReturn(): bool
+    {
+        $deliveredAt = $this->delivered_at ?? $this->updated_at;
+
+        return $this->status === 'completed' && ! $this->returnRequest
+            && $deliveredAt && $deliveredAt->gte(now()->subDays(self::RETURN_WINDOW_DAYS));
     }
 
     public function user()

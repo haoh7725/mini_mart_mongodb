@@ -22,6 +22,7 @@ class DatabaseSeeder extends Seeder
             ['name' => 'Quản lý', 'slug' => 'manager', 'description' => 'Quản lý vận hành cửa hàng'],
             ['name' => 'Nhân viên', 'slug' => 'staff', 'description' => 'Xử lý sản phẩm, kho và đơn hàng'],
             ['name' => 'Khách hàng', 'slug' => 'customer', 'description' => 'Mua hàng trên website'],
+            ['name' => 'Shipper', 'slug' => 'shipper', 'description' => 'Nhận và giao đơn hàng của cửa hàng'],
         ])->mapWithKeys(fn (array $role) => [
             $role['slug'] => Role::query()->updateOrCreate(['slug' => $role['slug']], $role),
         ]);
@@ -31,6 +32,7 @@ class DatabaseSeeder extends Seeder
             ['Quản lý cửa hàng', 'manager@minimart.test', 'manager'],
             ['Nhân viên bán hàng', 'staff@minimart.test', 'staff'],
             ['Khách hàng mẫu', 'customer@minimart.test', 'customer'],
+            ['Shipper Minh Tuấn', 'shipper@minimart.test', 'shipper'],
         ] as [$name, $email, $role]) {
             User::query()->updateOrCreate(['email' => $email], [
                 'name' => $name,
@@ -39,6 +41,8 @@ class DatabaseSeeder extends Seeder
                 'email_verified_at' => now(),
             ]);
         }
+        // Khách thấy số này để gọi shipper khi đơn đang giao.
+        User::query()->where('email', 'shipper@minimart.test')->update(['phone' => '0909123456']);
 
         $categories = collect([
             ['name' => 'Rau củ quả', 'slug' => 'rau-cu-qua', 'description' => 'Tươi mới từ nông trại', 'sort_order' => 1],

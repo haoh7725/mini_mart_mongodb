@@ -4,17 +4,13 @@
 <a class="{{ request()->routeIs('admin.dashboard')?'active':'' }}" href="{{ route('admin.dashboard') }}">Tổng quan</a>
 <a class="{{ request()->routeIs('admin.categories.*')?'active':'' }}" href="{{ route('admin.categories.index') }}">Danh mục</a>
 <a class="{{ request()->routeIs('admin.products.*')?'active':'' }}" href="{{ route('admin.products.index') }}">Sản phẩm</a>
-<a class="{{ request()->routeIs('admin.orders.*')?'active':'' }}" href="{{ route('admin.orders.index') }}">Đơn hàng</a>
-
+@php($pendingOrders = \App\Models\Order::query()->pending()->count())
+<a class="{{ request()->routeIs('admin.orders.*')?'active':'' }}" href="{{ route('admin.orders.index') }}">Đơn hàng <b class="nav-badge" data-pending-orders title="Đơn chờ xác nhận" @if(! $pendingOrders) hidden @endif>{{ $pendingOrders }}</b></a>
 <a class="{{ request()->routeIs('admin.reports.revenue')?'active':'' }}" href="{{ route('admin.reports.revenue') }}">Báo cáo doanh thu</a>
-@if(auth()->user()->hasRole('super-admin', 'manager'))
-<a class="{{ request()->routeIs('admin.coupons.*')?'active':'' }}" href="{{ route('admin.coupons.index') }}">Mã giảm giá</a>
-@endif
-
 @if(auth()->user()->hasRole('super-admin', 'manager'))<a class="{{ request()->routeIs('admin.coupons.*')?'active':'' }}" href="{{ route('admin.coupons.index') }}">Mã giảm giá</a>@endif
 <a class="{{ request()->routeIs('admin.rescue.*')?'active':'' }}" href="{{ route('admin.rescue.index') }}">BIG SALES</a>
 <a class="{{ request()->routeIs('admin.reviews.*')?'active':'' }}" href="{{ route('admin.reviews.index') }}">Đánh giá</a>
 @if(auth()->user()->hasRole('super-admin'))<a class="{{ request()->routeIs('admin.users.*')?'active':'' }}" href="{{ route('admin.users.index') }}">Tài khoản & phân quyền</a>@endif
 </nav><div class="admin-sidebar-footer"><a href="{{ route('home') }}">← Xem cửa hàng</a><form method="post" action="{{ route('logout') }}">@csrf<button>Đăng xuất</button></form></div></aside>
-<main id="admin-main" class="admin-main"><header class="admin-topbar"><button class="admin-menu" type="button" aria-label="Mở menu" onclick="document.body.classList.toggle('admin-nav-open')">☰</button><div><b>@yield('heading','Quản trị')</b><small>{{ auth()->user()->name }} · {{ auth()->user()->role?->name }}</small></div></header>
+<main id="admin-main" class="admin-main"><header class="admin-topbar"><button class="admin-menu" type="button" aria-label="Mở menu" onclick="document.body.classList.toggle('admin-nav-open')">☰</button><div><b>@yield('heading','Quản trị')</b><small>{{ auth()->user()->name }} · {{ auth()->user()->role?->name }}</small></div><x-notification-bell /></header>
 <div class="admin-content">@yield('content')</div></main></div><x-flash-messages /><x-confirm-dialog /></body></html>

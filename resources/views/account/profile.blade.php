@@ -5,6 +5,16 @@
 <div class="container account-layout">
     <nav class="account-nav" aria-label="Tài khoản"><a class="active" href="{{ route('account.profile') }}">Hồ sơ</a><a href="{{ route('account.orders.index') }}">Đơn hàng đã mua</a></nav>
     <div><section class="green-points-card"><div><span>Điểm Xanh</span><strong>{{ number_format($greenPoints,0,',','.') }}</strong><small>Mỗi sản phẩm SmartSave mang về 10 điểm khi đơn hoàn thành</small></div><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21C7 18 4 14 4 9c0-3 2-5 5-5 2 0 3 1 3 3 0-2 1-3 3-3 3 0 5 2 5 5 0 5-3 9-8 12Z"/></svg></section>@if($pointHistory->isNotEmpty())<div class="point-history">@foreach($pointHistory as $entry)<span>{{ $entry->reason }} <b>+{{ $entry->points }}</b></span>@endforeach</div>@endif
+    @php($currentPet = \App\Support\AssistantPet::for(auth()->user()))
+    <form class="account-panel pet-picker" method="post" action="{{ route('account.pet.update') }}">@csrf @method('patch')
+        <div><h2>Bạn đồng hành</h2><p>Chọn một bé rau củ làm trợ lý AI của bạn. Bé sẽ xuất hiện ở góc màn hình để gợi ý món ăn.</p></div>
+        <fieldset><legend class="sr-only">Chọn thú cưng rau củ</legend>
+            @foreach(\App\Support\AssistantPet::PETS as $key => $info)
+                <label class="pet-option"><input type="radio" name="assistant_pet" value="{{ $key }}" @checked($currentPet === $key)><span><x-veggie-pet :pet="$key" /><b>{{ $info['name'] }}</b><small>“{{ $info['greeting'] }}”</small></span></label>
+            @endforeach
+        </fieldset>
+        <button class="button primary">Chọn bạn đồng hành</button>
+    </form>
     <form class="account-panel account-form" method="post" action="{{ route('account.profile.update') }}">@csrf @method('patch')
         <div><h2>Thông tin tài khoản</h2><p>Cập nhật thông tin dùng khi đặt hàng.</p></div>
         <div class="field-grid">

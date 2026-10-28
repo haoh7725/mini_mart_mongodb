@@ -13,6 +13,8 @@ class User extends Authenticatable
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable;
 
+    public const STAFF_ROLES = ['super-admin', 'manager', 'staff'];
+
     /**
      * The attributes that are mass assignable.
      *
@@ -23,6 +25,7 @@ class User extends Authenticatable
         'email',
         'phone',
         'avatar',
+        'assistant_pet',
         'role_id',
         'is_active',
         'password',
@@ -76,5 +79,21 @@ class User extends Authenticatable
     public function hasRole(string ...$roles): bool
     {
         return $this->role !== null && in_array($this->role->slug, $roles, true);
+    }
+
+    public function isStaff(): bool
+    {
+        return $this->hasRole(...self::STAFF_ROLES);
+    }
+
+    public function isShipper(): bool
+    {
+        return $this->hasRole('shipper');
+    }
+
+    // Tài khoản đang hoạt động có một trong các vai trò.
+    public function scopeActiveWithRole($query, string ...$roles)
+    {
+        return $query->where('is_active', true)->whereHas('role', fn ($role) => $role->whereIn('slug', $roles));
     }
 }

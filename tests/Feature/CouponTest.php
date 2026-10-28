@@ -38,6 +38,22 @@ class CouponTest extends TestCase
         ]);
     }
 
+    public function test_admin_can_type_a_code_or_leave_it_blank_to_generate_one(): void
+    {
+        $manager = User::where('email', 'manager@minimart.test')->firstOrFail();
+        $data = ['type' => 'percentage', 'value' => 10, 'minimum_order_amount' => 0, 'is_active' => 1];
+
+        $this->actingAs($manager)->post(route('admin.coupons.store'), $data + ['code' => ' tet2027 '])->assertRedirect(route('admin.coupons.index'));
+        $this->assertDatabaseHas('coupons', ['code' => 'TET2027']);
+
+        $this->post(route('admin.coupons.store'), $data + ['code' => ''])->assertSessionHasNoErrors();
+        $generated = Coupon::latest('id')->firstOrFail();
+        $this->assertMatchesRegularExpression('/^['.Coupon::CODE_ALPHABET.']{8}$/', $generated->code);
+
+        $this->put(route('admin.coupons.update', $generated), $data + ['code' => ''])->assertSessionHasErrors('code');
+        $this->assertMatchesRegularExpression('/^SALE-['.Coupon::CODE_ALPHABET.']{8}$/', Coupon::generateCode('SALE'));
+    }
+
     public function test_discount_is_saved_and_cancellation_releases_usage_once(): void
     {
         $coupon = $this->coupon(['usage_limit' => 1]);

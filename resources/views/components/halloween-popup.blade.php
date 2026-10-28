@@ -158,11 +158,11 @@
     .hw-dialog{position:relative;width:min(430px,calc(100vw - 48px),calc((100vh - 110px) * 640 / 840));animation:hw-pop .35s cubic-bezier(.2,.9,.3,1.2) both}
     .hw-art{display:block;border-radius:16px;overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,.45)}
     .hw-art svg{display:block;width:100%;height:auto}
-    .hw-font{font-family:'Rubik',sans-serif}
+    .hw-font{font-family:'Be Vietnam Pro',sans-serif}
     .hw-headline text{fill:url(#hw-title-fill);stroke:#2a0a3d;stroke-width:6;paint-order:stroke;stroke-linejoin:round}
     .hw-close{position:absolute;top:-16px;right:-16px;z-index:2;width:42px;height:42px;display:grid;place-items:center;border:2px solid #fff;border-radius:50%;background:rgba(30,12,48,.85);cursor:pointer}
     .hw-close svg{width:20px;height:20px;stroke:#fff;stroke-width:2.6;stroke-linecap:round}
-    .hw-cta{position:absolute;left:50%;bottom:-24px;transform:translateX(-50%);display:flex;align-items:center;gap:8px;padding:12px 34px;border-radius:999px;border:2px solid #fff;background:linear-gradient(180deg,#ff9a3c,#ea580c);color:#fff;font:700 20px 'Rubik',sans-serif;white-space:nowrap;box-shadow:0 8px 20px rgba(234,88,12,.45)}
+    .hw-cta{position:absolute;left:50%;bottom:-24px;transform:translateX(-50%);display:flex;align-items:center;gap:8px;padding:12px 34px;border-radius:999px;border:2px solid #fff;background:linear-gradient(180deg,#ff9a3c,#ea580c);color:#fff;font:700 20px 'Be Vietnam Pro',sans-serif;white-space:nowrap;box-shadow:0 8px 20px rgba(234,88,12,.45)}
     .hw-cta:hover{background:linear-gradient(180deg,#ffab5c,#f26a13);color:#fff}
     .hw-flap{transform-box:fill-box;transform-origin:center;animation:hw-flap .5s ease-in-out infinite alternate}
     .hw-float{animation:hw-float 3s ease-in-out infinite}

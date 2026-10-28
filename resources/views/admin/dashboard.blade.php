@@ -2,7 +2,7 @@
 @section('title','Tổng quan')
 @section('heading','Tổng quan vận hành')
 @section('content')
-@php($statusLabels=['pending'=>'Chờ xác nhận','confirmed'=>'Đã xác nhận','processing'=>'Đang xử lý','shipping'=>'Đang giao','completed'=>'Hoàn tất','cancelled'=>'Đã hủy'])
+@php($statusLabels=\App\Models\Order::STATUS_LABELS)
 <div class="admin-page-head"><div><span class="eyebrow">{{ now()->format('d/m/Y') }}</span><h1>Bảng điều khiển</h1><p>Theo dõi doanh thu, đơn hàng, tồn kho và khách hàng trong một nơi.</p></div><div class="actions"><a class="admin-btn" href="{{ route('admin.orders.index') }}">Xử lý đơn</a><a class="admin-btn primary" href="{{ route('admin.products.create') }}">+ Thêm sản phẩm</a></div></div>
 <div class="stat-grid admin-stat-grid">
 @foreach([['Doanh thu',number_format($stats['revenue'],0,',','.').'đ','Đơn hoàn tất'],['Đơn hôm nay',$stats['today_orders'],'Trong ngày'],['Chờ xác nhận',$stats['pending_orders'],'Cần xử lý'],['Sản phẩm',$stats['products'],'Đang quản lý'],['Khách hàng',$stats['customers'],'Tài khoản'],['Sắp hết hàng',$stats['low_stock'],'Tồn ≤ 10']] as [$label,$value,$hint])<article class="stat-card"><span>{{ $label }}</span><strong>{{ $value }}</strong><small>{{ $hint }}</small></article>@endforeach
