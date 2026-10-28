@@ -7,6 +7,7 @@ use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Laravel\Socialite\Facades\Socialite;
+use Laravel\Socialite\Two\InvalidStateException;
 use Laravel\Socialite\Two\User as SocialiteUser;
 use Mockery;
 use Tests\TestCase;
@@ -101,5 +102,33 @@ class GoogleAuthTest extends TestCase
     public function test_cancelled_google_consent_returns_to_login(): void
     {
         $this->get(route('auth.google.callback', ['error' => 'access_denied']))->assertRedirect(route('login'))->assertSessionHasErrors('email');
+    }
+
+    public function test_login_moves_to_the_registered_callback_host_before_going_to_google(): void
+    {
+        config()->set('services.google.redirect', 'http://localhost:8000/dang-nhap/google/callback');
+
+        $this->get('http://mini-mart-laravel.test/dang-nhap/google')->assertRedirect('http://localhost:8000/dang-nhap/google');
+
+        $provider = Mockery::mock();
+        $provider->shouldReceive('redirectUrl')->with('http://localhost:8000/dang-nhap/google/callback')->andReturnSelf();
+        $provider->shouldReceive('with')->andReturnSelf();
+        $provider->shouldReceive('redirect')->andReturn(redirect()->away('https://accounts.google.com/o/oauth2/auth'));
+        Socialite::shouldReceive('driver')->with('google')->andReturn($provider);
+        $this->get('http://localhost:8000/dang-nhap/google')->assertRedirect('https://accounts.google.com/o/oauth2/auth');
+    }
+
+    public function test_expired_state_and_google_errors_show_a_clear_message(): void
+    {
+        $provider = Mockery::mock();
+        $provider->shouldReceive('redirectUrl')->andReturnSelf();
+        $provider->shouldReceive('with')->andReturnSelf();
+        $provider->shouldReceive('user')->andThrow(new InvalidStateException);
+        Socialite::shouldReceive('driver')->with('google')->andReturn($provider);
+
+        $this->get(route('auth.google.callback', ['code' => 'abc', 'state' => 'old']))->assertRedirect(route('login'))
+            ->assertSessionHasErrors(['email' => 'Phiên đăng nhập Google đã hết hạn. Vui lòng bấm "Tiếp tục với Google" lại.']);
+        $this->get(route('auth.google.callback', ['error' => 'invalid_request']))
+            ->assertSessionHasErrors(['email' => 'Google từ chối đăng nhập (invalid_request). Vui lòng thử lại.']);
     }
 }
