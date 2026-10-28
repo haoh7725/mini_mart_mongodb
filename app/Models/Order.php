@@ -27,6 +27,7 @@ class Order extends Model
     }
 
     public function user() { return $this->belongsTo(User::class); }
+    public function coupon() { return $this->belongsTo(Coupon::class); }
 
     // Khách chỉ tự hủy được khi đơn chưa bắt đầu xử lý và chưa trả tiền (đã trả cần shop hoàn tiền).
     public function canBeCancelledByCustomer(): bool

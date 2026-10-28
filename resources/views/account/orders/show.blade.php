@@ -1,6 +1,7 @@
 @extends('layouts.app')
 @section('title', 'Đơn hàng '.$order->code)
 @section('content')
+<div class="container"><x-order-discount :order="$order" /></div>
 @php($statuses = ['pending'=>'Chờ xác nhận','confirmed'=>'Đã xác nhận','processing'=>'Đang xử lý','shipping'=>'Đang giao','completed'=>'Hoàn tất','cancelled'=>'Đã hủy'])
 <section class="page-hero compact"><div class="container"><a class="eyebrow" href="{{ route('account.orders.index') }}">← Đơn hàng đã mua</a><h1>{{ $order->code }}</h1></div></section>
 <div class="container account-order-grid">

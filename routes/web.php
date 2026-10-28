@@ -33,6 +33,7 @@ Route::patch('/gio-hang/{product}', [CartController::class, 'update'])->name('ca
 Route::delete('/gio-hang/{product}', [CartController::class, 'destroy'])->name('cart.destroy');
 Route::get('/thanh-toan', [CheckoutController::class, 'create'])->name('checkout.create');
 Route::post('/thanh-toan', [CheckoutController::class, 'store'])->name('checkout.store');
+Route::post('/thanh-toan/ma-giam-gia', [CheckoutController::class, 'previewCoupon'])->middleware('throttle:30,1')->name('checkout.coupon');
 Route::get('/thanh-toan/vnpay/return', [VnpayController::class, 'return'])->name('vnpay.return');
 Route::get('/thanh-toan/vnpay/ipn', [VnpayController::class, 'ipn'])->name('vnpay.ipn');
 Route::get('/dat-hang-thanh-cong/{order:code}', [CheckoutController::class, 'success'])->name('checkout.success');
@@ -65,6 +66,7 @@ Route::prefix('tai-khoan')->name('account.')->middleware('auth')->group(function
 
 Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:super-admin,manager,staff'])->group(function () {
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
+    Route::resource('coupons', \App\Http\Controllers\Admin\CouponController::class)->except(['show', 'destroy'])->middleware('role:super-admin,manager');
     Route::resource('categories', AdminCategoryController::class)->except('show');
     Route::post('categories/{category}/restore', [AdminCategoryController::class, 'restore'])->name('categories.restore');
     Route::resource('products', AdminProductController::class)->except('show');

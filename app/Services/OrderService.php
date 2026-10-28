@@ -41,6 +41,9 @@ class OrderService
             }
 
             $locked->update(['status' => 'cancelled']);
+            if ($locked->coupon_id) {
+                DB::table('coupons')->where('id', $locked->coupon_id)->where('used_count', '>', 0)->decrement('used_count');
+            }
             $order->setRawAttributes($locked->getAttributes(), true);
             $this->syncGreenPoints($order);
         });

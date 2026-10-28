@@ -22,10 +22,45 @@
         <label class="payment-option"><input type="radio" {{ old('payment', 'cod') === 'cod' ? 'checked' : '' }} name="payment" value="cod"><span><b>Thanh toán khi nhận hàng (COD)</b><small>Kiểm tra đơn hàng và thanh toán cho nhân viên giao hàng.</small></span></label>
         <label class="payment-option"><input type="radio" {{ old('payment') === 'vnpay' ? 'checked' : '' }} name="payment" value="vnpay"><span><b>Thanh toán trực tuyến qua VNPay</b><small>Thẻ ATM, tài khoản ngân hàng, QR hoặc thẻ quốc tế trong môi trường sandbox.</small></span></label>
         @error('payment')<small class="text-danger">{{ $message }}</small>@enderror
+        <h2>Mã giảm giá</h2>
+        <div class="field"><label for="coupon_code">Nhập mã ưu đãi</label><input id="coupon_code" name="coupon_code" maxlength="50" value="{{ old('coupon_code') }}" placeholder="Ví dụ: WELCOME15"></div>
+        <button type="button" class="button ghost" id="apply-coupon">Áp dụng</button>
+        <button type="button" class="button ghost" id="remove-coupon">Bỏ mã</button>
+        <p id="coupon-feedback" role="status" aria-live="polite">@error('coupon_code'){{ $message }}@enderror</p>
+        <p>Mã áp dụng trên tiền hàng; phí giao hàng tính theo giá trị trước giảm. Mã được kiểm tra lại khi đặt hàng.</p>
     </section>
     <aside class="order-summary"><h2>Đơn hàng ({{ $items->sum('quantity') }})</h2>@foreach($items as $item)<div class="checkout-item"><span>{{ $item['product']->name }} <small>× {{ $item['quantity'] }}</small></span><strong>{{ number_format($item['line_total'], 0, ',', '.') }}đ</strong></div>@endforeach<hr><div><span>Tạm tính</span><strong>{{ number_format($subtotal, 0, ',', '.') }}đ</strong></div><div><span>Phí giao</span><strong>{{ $subtotal >= 300000 ? 'Miễn phí' : '25.000đ' }}</strong></div><div class="summary-total"><span>Tổng thanh toán</span><strong>{{ number_format($subtotal + ($subtotal >= 300000 ? 0 : 25000), 0, ',', '.') }}đ</strong></div><button class="button primary full">Đặt hàng</button><p class="policy">Bằng việc đặt hàng, bạn đồng ý với điều khoản mua hàng của MiniMart.</p></aside>
 </form>
 <script>
+document.addEventListener('DOMContentLoaded', () => {
+    const input = document.getElementById('coupon_code');
+    const feedback = document.getElementById('coupon-feedback');
+    const total = document.querySelector('.summary-total strong');
+    const original = total.textContent;
+    const button = document.getElementById('apply-coupon');
+    let revision = 0;
+    const reset = () => { revision++; total.textContent = original; feedback.textContent = ''; };
+    input.addEventListener('input', reset);
+    document.getElementById('remove-coupon').addEventListener('click', () => { input.value = ''; reset(); });
+    button.addEventListener('click', async () => {
+        const current = ++revision;
+        button.disabled = true;
+        try {
+            const response = await fetch(@json(route('checkout.coupon')), {
+                method: 'POST', headers: {'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': @json(csrf_token())},
+                body: JSON.stringify({coupon_code: input.value})
+            });
+            const data = await response.json();
+            if (current !== revision) return;
+            if (!response.ok) throw new Error(data.errors?.coupon_code?.[0] || data.message || 'Không áp dụng được mã.');
+            const money = value => new Intl.NumberFormat('vi-VN').format(value) + 'đ';
+            feedback.textContent = 'Đã áp dụng mã. Giảm ' + money(data.discount);
+            total.textContent = money(data.total);
+        } catch (error) {
+            if (current === revision) { total.textContent = original; feedback.textContent = error.message || 'Không kiểm tra được mã, vui lòng thử lại.'; }
+        } finally { button.disabled = false; }
+    });
+});
 document.addEventListener('DOMContentLoaded', async () => {
     const province = document.getElementById('province');
     const ward = document.getElementById('ward');

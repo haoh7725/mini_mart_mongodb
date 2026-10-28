@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Order;
+use App\Models\Coupon;
 use App\Models\Product;
 use App\Http\Requests\CheckoutRequest;
 use App\Services\VnpayService;
@@ -35,7 +36,8 @@ class CheckoutController extends Controller
         $cart = $request->session()->get('cart', []);
         abort_if(empty($cart), 422, 'Giỏ hàng đang trống.');
 
-        $order = DB::transaction(function () use ($cart, $customer, $paymentMethod) {
+        $couponCode = trim((string) $request->input('coupon_code', ''));
+        $order = DB::transaction(function () use ($cart, $customer, $paymentMethod, $couponCode) {
             $products = Product::query()->with([
                 'inventoryLots' => fn ($q) => $q->lockForUpdate(),
                 'inventoryLots.rescueCampaign' => fn ($q) => $q->lockForUpdate(),
@@ -48,13 +50,22 @@ class CheckoutController extends Controller
             $lineTotals = $allocations->map(fn (array $parts) => collect($parts)->sum(fn ($part) => $part['quantity'] * $part['unit_price']));
             $subtotal = $lineTotals->sum();
             $shippingFee = $subtotal >= 300000 ? 0 : 25000;
+            // Match cancellation's stock-before-coupon locking order.
+            $coupon = $couponCode !== '' ? Coupon::forCode($couponCode, true) : null;
+            $discount = $coupon?->discount($subtotal) ?? 0;
+            if ($paymentMethod === 'vnpay' && $subtotal - $discount + $shippingFee <= 0) {
+                throw \Illuminate\Validation\ValidationException::withMessages(['payment' => 'Đơn hàng 0đ không cần thanh toán trực tuyến. Vui lòng chọn COD để xác nhận đơn.']);
+            }
             $order = Order::query()->create($customer + [
                 'user_id' => auth()->id(),
                 'code' => 'MM-'.now()->format('ymd').'-'.strtoupper(Str::random(5)),
                 'subtotal' => $subtotal,
                 'shipping_fee' => $shippingFee,
-                'total_amount' => $subtotal + $shippingFee,
+                'coupon_id' => $coupon?->id,
+                'discount_amount' => $discount,
+                'total_amount' => $subtotal - $discount + $shippingFee,
             ]);
+            $coupon?->increment('used_count');
             foreach ($products as $product) {
                 $quantity = (int) $cart[$product->id];
                 $lineTotal = $lineTotals[$product->id];
@@ -96,5 +107,16 @@ class CheckoutController extends Controller
         $payment = DB::table('payments')->where('order_id', $order->id)->latest('id')->first();
 
         return view('store.success', compact('order', 'payment'));
+    }
+
+    public function previewCoupon(Request $request, CartController $cart)
+    {
+        $data = $request->validate(['coupon_code' => ['required', 'string', 'max:50']]);
+        $cartData = $cart->cartData($request);
+        abort_if($cartData['items']->isEmpty(), 422, 'Giỏ hàng đang trống.');
+        $subtotal = $cartData['subtotal'];
+        $coupon = Coupon::forCode($data['coupon_code']);
+        $discount = $coupon->discount($subtotal);
+        return response()->json(['discount' => $discount, 'total' => $subtotal - $discount + ($subtotal >= 300000 ? 0 : 25000)]);
     }
 }

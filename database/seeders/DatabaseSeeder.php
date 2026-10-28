@@ -89,6 +89,7 @@ class DatabaseSeeder extends Seeder
         }
 
         $this->call(BrandSeeder::class);
+        $this->call(CouponSeeder::class);
 
         if (! app()->environment('testing')) {
             $this->call(DemoDataSeeder::class);
