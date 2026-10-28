@@ -28,6 +28,7 @@ class Coupon extends Model
         if ($this->maximum_discount_amount !== null) {
             $discount = min($discount, (float) $this->maximum_discount_amount);
         }
+
         return round(max(0, min($subtotal, $discount)), 2);
     }
 
@@ -38,6 +39,7 @@ class Coupon extends Model
         if (! $coupon) {
             throw ValidationException::withMessages(['coupon_code' => 'Mã giảm giá không tồn tại.']);
         }
+
         return $coupon;
     }
 }

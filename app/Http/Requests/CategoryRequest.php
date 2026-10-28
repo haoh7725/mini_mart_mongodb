@@ -7,11 +7,15 @@ use Illuminate\Validation\Rule;
 
 class CategoryRequest extends FormRequest
 {
-    public function authorize(): bool { return $this->user()?->hasRole('super-admin', 'manager') ?? false; }
+    public function authorize(): bool
+    {
+        return $this->user()?->hasRole('super-admin', 'manager') ?? false;
+    }
 
     public function rules(): array
     {
         $category = $this->route('category');
+
         return [
             'name' => ['required', 'string', 'max:120', Rule::unique('categories')->ignore($category?->id)],
             'slug' => ['nullable', 'alpha_dash', 'max:140', Rule::unique('categories')->ignore($category?->id)],

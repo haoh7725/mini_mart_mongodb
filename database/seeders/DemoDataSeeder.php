@@ -19,6 +19,7 @@ class DemoDataSeeder extends Seeder
 
         if ($products->isEmpty()) {
             $this->command?->warn('Chưa có sản phẩm nên không thể tạo đơn hàng mẫu.');
+
             return;
         }
 

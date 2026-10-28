@@ -72,13 +72,18 @@ class AccountController extends Controller
         $skipped = [];
         foreach ($order->items as $item) {
             $product = $products->get($item->product_id);
-            if (! $product || $product->stock < 1) { $skipped[] = $item->product_name; continue; }
+            if (! $product || $product->stock < 1) {
+                $skipped[] = $item->product_name;
+
+                continue;
+            }
             $current = (int) ($cart[$product->id] ?? 0);
             $cart[$product->id] = min(99, $current + (int) $item->quantity, (int) $product->stock);
             $added += max(0, $cart[$product->id] - $current);
         }
         $request->session()->put('cart', $cart);
         $message = "Đã thêm {$added} sản phẩm vào giỏ.".($skipped ? ' Bỏ qua: '.implode(', ', $skipped).'.' : '');
+
         return redirect()->route('cart.index')->with('success', $message);
     }
 

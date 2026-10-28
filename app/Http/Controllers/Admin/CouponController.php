@@ -27,18 +27,21 @@ class CouponController extends Controller
     public function store(Request $request)
     {
         Coupon::create($this->validated($request));
+
         return redirect()->route('admin.coupons.index')->with('success', 'Đã tạo mã giảm giá.');
     }
 
     public function update(Request $request, Coupon $coupon)
     {
         $coupon->update($this->validated($request, $coupon));
+
         return redirect()->route('admin.coupons.index')->with('success', 'Đã cập nhật mã giảm giá.');
     }
 
     private function validated(Request $request, ?Coupon $coupon = null): array
     {
         $request->merge(['code' => strtoupper(trim((string) $request->input('code')))]);
+
         return $request->validate([
             'code' => ['required', 'string', 'max:50', 'regex:/^[A-Z0-9_-]+$/', Rule::unique('coupons')->ignore($coupon?->id)],
             'type' => ['required', Rule::in(['percentage', 'fixed'])],

@@ -2,14 +2,15 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Order;
-use App\Models\Coupon;
-use App\Models\Product;
 use App\Http\Requests\CheckoutRequest;
+use App\Models\Coupon;
+use App\Models\Order;
+use App\Models\Product;
 use App\Services\VnpayService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 class CheckoutController extends Controller
 {
@@ -17,6 +18,7 @@ class CheckoutController extends Controller
     {
         $data = $cart->cartData($request);
         $data['customer'] = $request->user();
+
         return $data['items']->isEmpty() ? redirect()->route('cart.index') : view('store.checkout', $data);
     }
 
@@ -54,7 +56,7 @@ class CheckoutController extends Controller
             $coupon = $couponCode !== '' ? Coupon::forCode($couponCode, true) : null;
             $discount = $coupon?->discount($subtotal) ?? 0;
             if ($paymentMethod === 'vnpay' && $subtotal - $discount + $shippingFee <= 0) {
-                throw \Illuminate\Validation\ValidationException::withMessages(['payment' => 'Đơn hàng 0đ không cần thanh toán trực tuyến. Vui lòng chọn COD để xác nhận đơn.']);
+                throw ValidationException::withMessages(['payment' => 'Đơn hàng 0đ không cần thanh toán trực tuyến. Vui lòng chọn COD để xác nhận đơn.']);
             }
             $order = Order::query()->create($customer + [
                 'user_id' => auth()->id(),
@@ -91,6 +93,7 @@ class CheckoutController extends Controller
                 'order_id' => $order->id, 'method' => $paymentMethod === 'vnpay' ? 'online' : 'cod', 'amount' => $order->total_amount,
                 'status' => 'pending', 'created_at' => now(), 'updated_at' => now(),
             ]);
+
             return $order;
         });
 
@@ -117,6 +120,7 @@ class CheckoutController extends Controller
         $subtotal = $cartData['subtotal'];
         $coupon = Coupon::forCode($data['coupon_code']);
         $discount = $coupon->discount($subtotal);
+
         return response()->json(['discount' => $discount, 'total' => $subtotal - $discount + ($subtotal >= 300000 ? 0 : 25000)]);
     }
 }

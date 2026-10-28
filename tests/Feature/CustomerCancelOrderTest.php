@@ -16,6 +16,7 @@ class CustomerCancelOrderTest extends TestCase
     use RefreshDatabase;
 
     private User $customer;
+
     private Product $product;
 
     protected function setUp(): void

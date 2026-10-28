@@ -39,8 +39,15 @@ class Product extends Model
         return $this->hasMany(ProductImage::class)->orderBy('sort_order');
     }
 
-    public function rescueCampaigns() { return $this->hasMany(RescueCampaign::class); }
-    public function reviews() { return $this->hasMany(Review::class); }
+    public function rescueCampaigns()
+    {
+        return $this->hasMany(RescueCampaign::class);
+    }
+
+    public function reviews()
+    {
+        return $this->hasMany(Review::class);
+    }
 
     public function activeRescueCampaign()
     {
@@ -83,7 +90,9 @@ class Product extends Model
         $remaining = $quantity;
         foreach ($lots as $lot) {
             $take = min((float) $lot->quantity - (float) $lot->reserved_quantity, $remaining);
-            if ($take <= 0) continue;
+            if ($take <= 0) {
+                continue;
+            }
             $campaign = $lot->rescueCampaign?->isRunning() ? $lot->rescueCampaign : null;
             $rescued = $campaign ? min($take, $campaign->remaining_quantity) : 0;
             if ($rescued > 0) {
@@ -93,7 +102,9 @@ class Product extends Model
                 $parts[] = ['lot' => $lot, 'campaign' => null, 'quantity' => $take - $rescued, 'unit_price' => $this->regular_price];
             }
             $remaining -= $take;
-            if ($remaining <= 0) break;
+            if ($remaining <= 0) {
+                break;
+            }
         }
 
         return $parts;

@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\DB;
 class OrderService
 {
     public const POINTS_PER_RESCUED_UNIT = 10;
+
     private const POINT_REASON = 'Mua sản phẩm SmartSave';
 
     // Hủy đơn: hoàn kho từng lô, trả lại số lượng cho chiến dịch giải cứu và thu hồi điểm xanh.
@@ -55,6 +56,7 @@ class OrderService
         $award = GreenPointTransaction::query()->where('order_id', $order->id)->where('reason', self::POINT_REASON);
         if ($order->status !== 'completed' || ! $order->user_id) {
             $award->delete();
+
             return;
         }
 
