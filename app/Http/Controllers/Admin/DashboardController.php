@@ -6,8 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\Category;
 use App\Models\Order;
 use App\Models\Product;
-use App\Models\User;
 use App\Models\RescueCampaign;
+use App\Models\User;
 use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
@@ -16,6 +16,7 @@ class DashboardController extends Controller
     {
         $monthlyRevenue = collect(range(5, 0))->map(function (int $monthsAgo) {
             $month = now()->startOfMonth()->subMonths($monthsAgo);
+
             return [
                 'label' => 'T'.$month->format('m'),
                 'value' => (float) Order::where('status', 'completed')->whereYear('created_at', $month->year)->whereMonth('created_at', $month->month)->sum('total_amount'),

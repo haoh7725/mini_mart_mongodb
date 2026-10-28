@@ -7,11 +7,15 @@ use Illuminate\Validation\Rule;
 
 class ProductRequest extends FormRequest
 {
-    public function authorize(): bool { return $this->user()?->hasRole('super-admin', 'manager', 'staff') ?? false; }
+    public function authorize(): bool
+    {
+        return $this->user()?->hasRole('super-admin', 'manager', 'staff') ?? false;
+    }
 
     public function rules(): array
     {
         $product = $this->route('product');
+
         return [
             'category_id' => ['required', 'exists:categories,id'],
             'brand_id' => ['nullable', 'exists:brands,id'],

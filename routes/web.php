@@ -1,23 +1,24 @@
 <?php
 
-use App\Http\Controllers\CartController;
-use App\Http\Controllers\GoogleAuthController;
-use App\Http\Controllers\CheckoutController;
-use App\Http\Controllers\VnpayController;
-use App\Http\Controllers\StoreController;
-use App\Http\Controllers\AuthController;
-use App\Http\Controllers\AddressController;
 use App\Http\Controllers\AccountController;
-use App\Http\Controllers\RescueStoreController;
-use App\Http\Controllers\ReviewController;
-use App\Http\Controllers\CookingAssistantController;
-use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\AddressController;
 use App\Http\Controllers\Admin\CategoryController as AdminCategoryController;
-use App\Http\Controllers\Admin\ProductController as AdminProductController;
+use App\Http\Controllers\Admin\CouponController;
+use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\OrderController as AdminOrderController;
-use App\Http\Controllers\Admin\UserController as AdminUserController;
+use App\Http\Controllers\Admin\ProductController as AdminProductController;
 use App\Http\Controllers\Admin\RescueController as AdminRescueController;
 use App\Http\Controllers\Admin\ReviewController as AdminReviewController;
+use App\Http\Controllers\Admin\UserController as AdminUserController;
+use App\Http\Controllers\AuthController;
+use App\Http\Controllers\CartController;
+use App\Http\Controllers\CheckoutController;
+use App\Http\Controllers\CookingAssistantController;
+use App\Http\Controllers\GoogleAuthController;
+use App\Http\Controllers\RescueStoreController;
+use App\Http\Controllers\ReviewController;
+use App\Http\Controllers\StoreController;
+use App\Http\Controllers\VnpayController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [StoreController::class, 'home'])->name('home');
@@ -66,7 +67,7 @@ Route::prefix('tai-khoan')->name('account.')->middleware('auth')->group(function
 
 Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:super-admin,manager,staff'])->group(function () {
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
-    Route::resource('coupons', \App\Http\Controllers\Admin\CouponController::class)->except(['show', 'destroy'])->middleware('role:super-admin,manager');
+    Route::resource('coupons', CouponController::class)->except(['show', 'destroy'])->middleware('role:super-admin,manager');
     Route::resource('categories', AdminCategoryController::class)->except('show');
     Route::post('categories/{category}/restore', [AdminCategoryController::class, 'restore'])->name('categories.restore');
     Route::resource('products', AdminProductController::class)->except('show');

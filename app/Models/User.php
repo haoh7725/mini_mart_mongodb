@@ -58,9 +58,20 @@ class User extends Authenticatable
         return $this->belongsTo(Role::class);
     }
 
-    public function reviews() { return $this->hasMany(Review::class); }
-    public function greenPointTransactions() { return $this->hasMany(GreenPointTransaction::class); }
-    public function getGreenPointsAttribute(): int { return (int) $this->greenPointTransactions()->sum('points'); }
+    public function reviews()
+    {
+        return $this->hasMany(Review::class);
+    }
+
+    public function greenPointTransactions()
+    {
+        return $this->hasMany(GreenPointTransaction::class);
+    }
+
+    public function getGreenPointsAttribute(): int
+    {
+        return (int) $this->greenPointTransactions()->sum('points');
+    }
 
     public function hasRole(string ...$roles): bool
     {

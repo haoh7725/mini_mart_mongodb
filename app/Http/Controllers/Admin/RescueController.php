@@ -50,6 +50,7 @@ class RescueController extends Controller
     public function stop(RescueCampaign $campaign)
     {
         $campaign->update(['is_active' => false]);
+
         return back()->with('success', 'Đã dừng chiến dịch giải cứu.');
     }
 }

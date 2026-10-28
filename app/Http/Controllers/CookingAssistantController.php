@@ -34,6 +34,7 @@ class CookingAssistantController extends Controller
                 $status === 400 => 'Yêu cầu gửi đến Gemini chưa hợp lệ. Hãy kiểm tra model đang cấu hình.',
                 default => 'Gemini đang tạm thời không phản hồi. Vui lòng thử lại sau.',
             };
+
             return response()->json(['message' => $message], 502);
         } catch (RuntimeException $exception) {
             return response()->json(['message' => $exception->getMessage()], 503);
@@ -55,7 +56,9 @@ class CookingAssistantController extends Controller
         $cart = $request->session()->get('cart', []);
         $added = 0;
         foreach ($products as $product) {
-            if ($product->stock < 1) continue;
+            if ($product->stock < 1) {
+                continue;
+            }
             $cart[$product->id] = min((int) ($cart[$product->id] ?? 0) + 1, (int) $product->stock, 99);
             $added++;
         }

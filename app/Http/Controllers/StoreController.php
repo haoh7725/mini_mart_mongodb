@@ -36,7 +36,9 @@ class StoreController extends Controller
 
         return collect($slides)->map(function (array $slide) use ($products, $discount) {
             $product = $products->where('category.slug', $slide['category'])->sortByDesc($discount)->first();
-            if (! $product) return null;
+            if (! $product) {
+                return null;
+            }
             $percent = $discount($product);
 
             return array_merge($slide, [

@@ -15,7 +15,9 @@ class Category extends Model
 
     public function getImageUrlAttribute(): ?string
     {
-        if (! $this->image) return null;
+        if (! $this->image) {
+            return null;
+        }
 
         return Str::startsWith($this->image, ['http://', 'https://'])
             ? $this->image

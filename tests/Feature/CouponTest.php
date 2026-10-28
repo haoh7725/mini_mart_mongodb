@@ -1,9 +1,15 @@
 <?php
+
 namespace Tests\Feature;
 
-use App\Models\{Coupon, InventoryLot, Order, Product, User};
+use App\Models\Coupon;
+use App\Models\InventoryLot;
+use App\Models\Order;
+use App\Models\Product;
+use App\Models\User;
 use App\Services\OrderService;
-use Database\Seeders\{DatabaseSeeder, CouponSeeder};
+use Database\Seeders\CouponSeeder;
+use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
