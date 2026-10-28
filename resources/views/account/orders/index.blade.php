@@ -1,19 +1,34 @@
 @extends('layouts.app')
 @section('title', 'Đơn hàng đã mua')
 @section('content')
-@php($statuses = ['pending'=>'Chờ xác nhận','confirmed'=>'Đã xác nhận','processing'=>'Đang xử lý','shipping'=>'Đang giao','completed'=>'Hoàn tất','cancelled'=>'Đã hủy'])
 <section class="page-hero compact"><div class="container"><span class="eyebrow">Tài khoản</span><h1>Đơn hàng đã mua</h1></div></section>
 <div class="container account-layout">
     <nav class="account-nav" aria-label="Tài khoản"><a href="{{ route('account.profile') }}">Hồ sơ</a><a class="active" href="{{ route('account.orders.index') }}">Đơn hàng đã mua</a></nav>
     <section class="account-panel">
-        <div class="panel-head"><div><h2>Lịch sử mua hàng</h2><p>Theo dõi trạng thái và xem lại sản phẩm đã đặt.</p></div></div>
-        <div class="table-wrap"><table><thead><tr><th>Mã đơn</th><th>Ngày đặt</th><th>Sản phẩm</th><th>Trạng thái</th><th>Thanh toán</th><th>Tổng tiền</th><th></th></tr></thead><tbody>
+        <nav class="order-tabs" aria-label="Lọc đơn hàng theo trạng thái">
+            @foreach(\App\Models\Order::CUSTOMER_TABS as $key => $label)
+                <a href="{{ route('account.orders.index', $key === 'all' ? [] : ['tab' => $key]) }}" @class(['active' => $tab === $key]) @if($tab === $key) aria-current="page" @endif>{{ $label }}@if(($counts[$key] ?? 0) > 0)<span>{{ $counts[$key] }}</span>@endif</a>
+            @endforeach
+        </nav>
+        <div class="order-cards">
         @forelse($orders as $order)
-            <tr><td><a href="{{ route('account.orders.show', $order->code) }}"><b>{{ $order->code }}</b></a></td><td>{{ $order->created_at->format('d/m/Y H:i') }}</td><td>{{ $order->items_count }}</td><td><span class="status status-{{ $order->status }}">{{ $statuses[$order->status] ?? $order->status }}</span></td><td>{{ $order->payment_status === 'paid' ? 'Đã thanh toán' : 'Chưa thanh toán' }}</td><td><b>{{ number_format($order->total_amount, 0, ',', '.') }}đ</b></td><td class="order-actions"><a href="{{ route('account.orders.show', $order->code) }}">Chi tiết</a>@if($order->canBeCancelledByCustomer())<a class="danger" href="{{ route('account.orders.show', [$order->code, 'huy' => 1]) }}#huy-don">Hủy đơn</a>@endif</td></tr>
+            <article class="order-card">
+                <header><div><b>{{ $order->code }}</b><small>Đặt lúc {{ $order->created_at->format('H:i d/m/Y') }}</small></div>
+                    <span class="status status-{{ $order->status }}">{{ $order->displayStatusLabel() }}</span></header>
+                @if($order->isInDelivery() && $order->estimated_delivery_at)
+                    <p class="order-card-eta">🚚 {{ $order->status === 'shipping' ? 'Đang giao' : 'Chờ shipper lấy hàng' }} · Dự kiến giao trước <b>{{ $order->estimated_delivery_at->format('H:i') }}</b> {{ $order->estimated_delivery_at->isToday() ? 'hôm nay' : $order->estimated_delivery_at->format('d/m') }}</p>
+                @endif
+                <ul class="order-card-items">
+                    @foreach($order->items->take(2) as $item)<li><span>{{ $item->product_name }}</span><small>× {{ number_format($item->quantity, 0, ',', '.') }}</small></li>@endforeach
+                    @if($order->items_count > 2)<li class="more">và {{ $order->items_count - 2 }} sản phẩm khác</li>@endif
+                </ul>
+                <footer><span>Thành tiền: <b>{{ number_format($order->total_amount, 0, ',', '.') }}đ</b></span>
+                    <span class="order-actions">@if($order->canBeCancelledByCustomer())<a class="danger" href="{{ route('account.orders.show', [$order->code, 'huy' => 1]) }}#huy-don">Hủy đơn</a>@endif<a href="{{ route('account.orders.show', $order->code) }}">{{ $order->isInDelivery() ? 'Theo dõi đơn' : 'Xem chi tiết' }}</a></span></footer>
+            </article>
         @empty
-            <tr><td colspan="7" class="empty-cell">Bạn chưa có đơn hàng nào. <a href="{{ route('products.index') }}">Mua sắm ngay</a></td></tr>
+            <p class="empty-cell">{{ $tab === 'all' ? 'Bạn chưa có đơn hàng nào.' : 'Chưa có đơn hàng nào ở mục này.' }} <a href="{{ route('products.index') }}">Mua sắm ngay</a></p>
         @endforelse
-        </tbody></table></div>
+        </div>
         <div class="admin-pagination">{{ $orders->links() }}</div>
     </section>
 </div>

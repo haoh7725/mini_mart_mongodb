@@ -71,7 +71,10 @@ const initAiChatbox = () => {
                     if (!cartResponse.ok) throw new Error(cartData.message || 'Không thể cập nhật giỏ hàng.');
                     addButton.textContent = cartData.message;
                     const badge = document.querySelector('.cart-link b');
-                    if (badge && cartData.cart_count !== undefined) badge.textContent = cartData.cart_count;
+                    if (badge && cartData.cart_count !== undefined) {
+                        badge.textContent = cartData.cart_count;
+                        badge.hidden = !cartData.cart_count;
+                    }
                 } catch (error) { addButton.textContent = error.message; addButton.disabled = false; }
             });
         } catch (error) {
@@ -160,8 +163,100 @@ const initConfirmDialog = () => {
     dialog.addEventListener('click', event => { if (event.target === dialog) dialog.close('cancel'); });
 };
 
+// Menu thả xuống dạng <details data-dropdown>: đóng khi bấm ra ngoài hoặc nhấn Esc.
+const initDropdowns = () => {
+    const closeOpen = except => document.querySelectorAll('details[data-dropdown][open]').forEach(menu => {
+        if (menu !== except) menu.open = false;
+    });
+    document.addEventListener('click', event => closeOpen(event.target.closest('details[data-dropdown]')));
+    document.addEventListener('keydown', event => { if (event.key === 'Escape') closeOpen(null); });
+};
+
+// Chuông thông báo: hỏi server định kỳ, cập nhật số chưa đọc, hiện toast khi có thông báo mới.
+// Nhân viên nghe tiếng "ting" và nhận thông báo trên máy tính khi có đơn mới.
+const initNotifications = () => {
+    const bell = document.querySelector('[data-notify]');
+    if (!bell) return;
+    const list = bell.querySelector('[data-notify-list]');
+    const count = bell.querySelector('[data-notify-count]');
+    const staff = bell.dataset.staff === '1';
+    const baseTitle = document.title.replace(/^\(\d+\+?\) /, '');
+    const seen = new Set(JSON.parse(bell.dataset.seen || '[]'));
+    const canNotify = 'Notification' in window;
+
+    const setUnread = unread => {
+        const label = unread > 99 ? '99+' : unread;
+        count.hidden = !unread;
+        count.textContent = label;
+        document.title = unread ? `(${label}) ${baseTitle}` : baseTitle;
+    };
+    const render = items => {
+        list.innerHTML = items.length ? items.map(item => `<li class="${item.read ? '' : 'unread'}"><a href="${escapeHtml(item.url)}">`
+            + `<span class="notify-icon notify-${escapeHtml(item.kind)}" aria-hidden="true">${escapeHtml(item.icon)}</span>`
+            + `<span><b>${escapeHtml(item.title)}</b>${item.body ? `<small>${escapeHtml(item.body)}</small>` : ''}<time>${escapeHtml(item.time)}</time></span></a></li>`).join('')
+            : '<li class="notify-empty">Chưa có thông báo nào.</li>';
+    };
+    const ding = () => {
+        try {
+            const audio = new AudioContext();
+            [880, 1320].forEach((frequency, index) => {
+                const tone = audio.createOscillator();
+                const gain = audio.createGain();
+                const start = audio.currentTime + index * 0.18;
+                tone.frequency.value = frequency;
+                gain.gain.setValueAtTime(0.12, start);
+                gain.gain.exponentialRampToValueAtTime(0.001, start + 0.35);
+                tone.connect(gain).connect(audio.destination);
+                tone.start(start);
+                tone.stop(start + 0.35);
+            });
+        } catch { /* Trình duyệt chặn âm thanh khi chưa tương tác với trang. */ }
+    };
+
+    const poll = async () => {
+        if (!staff && document.hidden) return;
+        try {
+            const response = await fetch(bell.dataset.feed, { headers: { Accept: 'application/json' } });
+            if (!response.ok) return;
+            const data = await response.json();
+            setUnread(data.unread);
+            render(data.items);
+            const fresh = data.items.filter(item => !item.read && !seen.has(item.id)).reverse();
+            data.items.forEach(item => seen.add(item.id));
+            fresh.forEach(item => {
+                window.showToast?.(item.kind === 'new_order' ? 'success' : 'info', item.body ?? '', `${item.icon} ${item.title}`);
+                if (staff && document.hidden && canNotify && Notification.permission === 'granted') {
+                    const desktop = new Notification(item.title, { body: item.body ?? '', tag: item.id });
+                    desktop.onclick = () => { window.focus(); window.location.href = item.url; };
+                }
+            });
+            if (staff && fresh.some(item => item.kind === 'new_order')) ding();
+            const pending = document.querySelector('[data-pending-orders]');
+            if (pending && data.pending_orders !== null) {
+                pending.textContent = data.pending_orders;
+                pending.hidden = !data.pending_orders;
+            }
+        } catch { /* Mất mạng tạm thời: lần gọi sau sẽ cập nhật lại. */ }
+    };
+
+    setUnread(count.hidden ? 0 : Number(count.textContent.replace('+', '')));
+    window.setInterval(poll, staff ? 15000 : 30000);
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) poll(); });
+
+    const enable = bell.querySelector('[data-notify-enable]');
+    if (enable && canNotify && Notification.permission === 'default') {
+        enable.hidden = false;
+        enable.addEventListener('click', async () => {
+            await Notification.requestPermission();
+            enable.hidden = true;
+        });
+    }
+};
+
 document.addEventListener('DOMContentLoaded', () => {
     initAiChatbox();
+    initDropdowns();
+    initNotifications();
     document.querySelectorAll('[data-flash]').forEach(armFlash);
     initConfirmDialog();
 });

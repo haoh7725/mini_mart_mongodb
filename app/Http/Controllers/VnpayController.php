@@ -64,7 +64,9 @@ class VnpayController extends Controller
                 'updated_at' => now(),
             ]);
             $order->update(['payment_status' => $successful ? 'paid' : 'failed']);
-            if (! $successful) {
+            if ($successful) {
+                app(OrderService::class)->paid($order);
+            } else {
                 app(OrderService::class)->cancel($order);
             }
         });

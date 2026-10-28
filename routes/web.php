@@ -8,18 +8,20 @@ use App\Http\Controllers\Admin\CouponController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\OrderController as AdminOrderController;
 use App\Http\Controllers\Admin\ProductController as AdminProductController;
-use App\Http\Controllers\Admin\RescueController as AdminRescueController;
-use App\Http\Controllers\Admin\ReviewController as AdminReviewController;
 use App\Http\Controllers\Admin\ReportController as AdminReportController;
+use App\Http\Controllers\Admin\RescueController as AdminRescueController;
 use App\Http\Controllers\Admin\RevenueReportController as AdminRevenueReportController;
+use App\Http\Controllers\Admin\ReviewController as AdminReviewController;
 use App\Http\Controllers\Admin\UserController as AdminUserController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CartController;
 use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\CookingAssistantController;
 use App\Http\Controllers\GoogleAuthController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\RescueStoreController;
 use App\Http\Controllers\ReviewController;
+use App\Http\Controllers\ShipperController;
 use App\Http\Controllers\StoreController;
 use App\Http\Controllers\VnpayController;
 use Illuminate\Support\Facades\Route;
@@ -81,6 +83,12 @@ Route::post('/dang-xuat', [AuthController::class, 'logout'])
     ->middleware('auth')
     ->name('logout');
 
+Route::middleware('auth')->group(function () {
+    Route::get('/thong-bao', [NotificationController::class, 'index'])->middleware('throttle:60,1')->name('notifications.index');
+    Route::post('/thong-bao/doc-het', [NotificationController::class, 'readAll'])->name('notifications.read-all');
+    Route::get('/thong-bao/{id}', [NotificationController::class, 'open'])->name('notifications.open');
+});
+
 Route::prefix('tai-khoan')->name('account.')->middleware('auth')->group(function () {
     Route::get('/ho-so', [AccountController::class, 'profile'])->name('profile');
     Route::patch('/ho-so', [AccountController::class, 'updateProfile'])->name('profile.update');
@@ -89,6 +97,7 @@ Route::prefix('tai-khoan')->name('account.')->middleware('auth')->group(function
     Route::get('/don-hang/{code}', [AccountController::class, 'showOrder'])->name('orders.show');
     Route::post('/don-hang/{code}/mua-lai', [AccountController::class, 'reorder'])->name('orders.reorder');
     Route::post('/don-hang/{code}/huy', [AccountController::class, 'cancelOrder'])->name('orders.cancel');
+    Route::post('/don-hang/{code}/tra-hang', [AccountController::class, 'requestReturn'])->name('orders.return');
 
     Route::post('/danh-gia/{item}', [ReviewController::class, 'store'])->name('reviews.store');
 });
@@ -124,6 +133,8 @@ Route::prefix('admin')
         Route::get('orders', [AdminOrderController::class, 'index'])->name('orders.index');
         Route::get('orders/{order}', [AdminOrderController::class, 'show'])->name('orders.show');
         Route::patch('orders/{order}', [AdminOrderController::class, 'update'])->name('orders.update');
+        Route::post('orders/{order}/tracking', [AdminOrderController::class, 'track'])->name('orders.tracking');
+        Route::patch('orders/{order}/return', [AdminOrderController::class, 'resolveReturn'])->name('orders.return');
 
         Route::get('giai-cuu', [AdminRescueController::class, 'index'])->name('rescue.index');
         Route::post('giai-cuu/lo-hang/{lot}', [AdminRescueController::class, 'store'])->name('rescue.store');
@@ -135,3 +146,11 @@ Route::prefix('admin')
             Route::resource('users', AdminUserController::class)->except(['show', 'destroy']);
         });
     });
+
+Route::prefix('giao-hang')->name('shipper.')->middleware(['auth', 'role:shipper'])->group(function () {
+    Route::get('/', [ShipperController::class, 'index'])->name('index');
+    Route::post('/{order}/lay-hang', [ShipperController::class, 'pickup'])->name('pickup');
+    Route::post('/{order}/cap-nhat', [ShipperController::class, 'update'])->name('update');
+    Route::post('/{order}/da-giao', [ShipperController::class, 'deliver'])->name('deliver');
+    Route::post('/{order}/that-bai', [ShipperController::class, 'fail'])->name('fail');
+});

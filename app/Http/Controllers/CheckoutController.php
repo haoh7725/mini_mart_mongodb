@@ -6,6 +6,7 @@ use App\Http\Requests\CheckoutRequest;
 use App\Models\Coupon;
 use App\Models\Order;
 use App\Models\Product;
+use App\Services\OrderService;
 use App\Services\VnpayService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -93,6 +94,7 @@ class CheckoutController extends Controller
                 'order_id' => $order->id, 'method' => $paymentMethod === 'vnpay' ? 'online' : 'cod', 'amount' => $order->total_amount,
                 'status' => 'pending', 'created_at' => now(), 'updated_at' => now(),
             ]);
+            app(OrderService::class)->placed($order, $paymentMethod);
 
             return $order;
         });

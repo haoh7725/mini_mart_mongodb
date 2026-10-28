@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Order;
 use App\Models\Product;
+use App\Models\ReturnRequest;
 use App\Services\OrderService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -49,15 +50,18 @@ class AccountController extends Controller
 
     public function orders(Request $request)
     {
-        $orders = $this->ordersFor($request)
-            ->withCount('items')->latest()->paginate(10);
+        $tab = array_key_exists((string) $request->query('tab'), Order::CUSTOMER_TABS) ? $request->query('tab') : 'all';
+        $counts = collect(Order::CUSTOMER_TABS)->except('all')
+            ->map(fn ($label, $key) => $this->ordersFor($request)->forCustomerTab($key)->count());
+        $orders = $this->ordersFor($request)->forCustomerTab($tab)
+            ->with(['items' => fn ($items) => $items->limit(2), 'returnRequest'])->withCount('items')->latest()->paginate(10)->withQueryString();
 
-        return view('account.orders.index', compact('orders'));
+        return view('account.orders.index', compact('orders', 'tab', 'counts'));
     }
 
     public function showOrder(Request $request, string $code)
     {
-        $order = $this->ordersFor($request)->with(['items.review'])->where('code', $code)->firstOrFail();
+        $order = $this->ordersFor($request)->with(['items.review', 'shipper', 'returnRequest', 'trackingEvents'])->where('code', $code)->firstOrFail();
         $payment = DB::table('payments')->where('order_id', $order->id)->latest('id')->first();
 
         return view('account.orders.show', compact('order', 'payment'));
@@ -95,25 +99,35 @@ class AccountController extends Controller
         ], ['reason.required' => 'Vui lòng chọn lý do hủy đơn.']);
         $order = $this->ordersFor($request)->where('code', $code)->firstOrFail();
 
-        $cancelled = DB::transaction(function () use ($order, $data, $orders) {
-            // Khóa đơn để shop không chuyển sang "đang giao" cùng lúc khách bấm hủy.
-            $locked = Order::query()->lockForUpdate()->findOrFail($order->id);
-            if (! $locked->canBeCancelledByCustomer()) {
-                return false;
-            }
-            $orders->cancel($locked);
-            $reason = $data['reason'].(filled($data['reason_detail'] ?? null) ? ': '.$data['reason_detail'] : '');
-            $locked->update(['cancelled_at' => now(), 'cancel_reason' => $reason]);
-            // Thanh toán online còn treo thì đóng lại, để callback VNPay đến muộn không ghi nhận nữa.
-            DB::table('payments')->where('order_id', $locked->id)->where('status', 'pending')
-                ->update(['status' => 'failed', 'updated_at' => now()]);
-
-            return true;
-        });
+        $reason = $data['reason'].(filled($data['reason_detail'] ?? null) ? ': '.$data['reason_detail'] : '');
+        $cancelled = $orders->cancelByCustomer($order, $reason);
 
         return $cancelled
             ? redirect()->route('account.orders.show', $code)->with('success', 'Đã hủy đơn hàng '.$code.'.')
             : back()->withErrors(['order' => 'Đơn hàng này không thể hủy nữa. Vui lòng liên hệ hotline 1900 6868.']);
+    }
+
+    public function requestReturn(Request $request, string $code, OrderService $orders)
+    {
+        $data = $request->validate([
+            'return_reason' => ['required', Rule::in(ReturnRequest::REASONS)],
+            'return_detail' => ['nullable', 'string', 'max:500'],
+        ], ['return_reason.required' => 'Vui lòng chọn lý do trả hàng.']);
+        $order = $this->ordersFor($request)->where('code', $code)->firstOrFail();
+
+        $sent = DB::transaction(function () use ($order, $data, $orders) {
+            $locked = Order::query()->with('returnRequest')->lockForUpdate()->findOrFail($order->id);
+            if (! $locked->canRequestReturn()) {
+                return false;
+            }
+            $orders->requestReturn($locked, $data['return_reason'], $data['return_detail'] ?? null);
+
+            return true;
+        });
+
+        return $sent
+            ? redirect()->route('account.orders.show', $code)->with('success', 'Đã gửi yêu cầu trả hàng/hoàn tiền. Shop sẽ phản hồi sớm.')
+            : back()->withErrors(['return_reason' => 'Đơn này không thể yêu cầu trả hàng (đã quá '.Order::RETURN_WINDOW_DAYS.' ngày hoặc đã gửi yêu cầu).']);
     }
 
     private function ordersFor(Request $request)
