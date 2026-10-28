@@ -171,3 +171,4 @@
 .error-card small{color:var(--muted)}
 @media (max-width:520px){.flash-stack{top:auto;bottom:16px;right:16px}.error-card{padding:28px 20px}.error-actions .button{width:100%;justify-content:center}}
 @media (prefers-reduced-motion:reduce){.flash,.flash.is-leaving,.confirm-dialog[open]{animation-duration:.01ms}.flash-progress{animation:none}}
+.coupon-code-input{display:flex;gap:8px}.coupon-code-input input{flex:1;min-width:0;text-transform:uppercase}.coupon-code-input .admin-btn{white-space:nowrap}.field-hint,.field small.field-hint{color:var(--muted)}

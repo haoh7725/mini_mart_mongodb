@@ -9,6 +9,22 @@ class Coupon extends Model
 {
     protected $guarded = ['id', 'used_count'];
 
+    // Bỏ 0, O, 1, I, L để khách không gõ nhầm khi nhập mã.
+    public const CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+
+    public const CODE_LENGTH = 8;
+
+    public static function generateCode(string $prefix = '', int $length = self::CODE_LENGTH): string
+    {
+        do {
+            $random = collect(range(1, $length))
+                ->map(fn () => self::CODE_ALPHABET[random_int(0, strlen(self::CODE_ALPHABET) - 1)])->implode('');
+            $code = $prefix === '' ? $random : $prefix.'-'.$random;
+        } while (static::where('code', $code)->exists());
+
+        return $code;
+    }
+
     protected function casts(): array
     {
         return ['starts_at' => 'datetime', 'expires_at' => 'datetime', 'is_active' => 'boolean'];
