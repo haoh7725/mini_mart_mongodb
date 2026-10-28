@@ -18,6 +18,8 @@ use App\Http\Controllers\Admin\OrderController as AdminOrderController;
 use App\Http\Controllers\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Admin\RescueController as AdminRescueController;
 use App\Http\Controllers\Admin\ReviewController as AdminReviewController;
+use App\Http\Controllers\Admin\ReportController as AdminReportController;
+use App\Http\Controllers\Admin\RevenueReportController as AdminRevenueReportController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [StoreController::class, 'home'])->name('home');
@@ -65,6 +67,8 @@ Route::prefix('tai-khoan')->name('account.')->middleware('auth')->group(function
 
 Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:super-admin,manager,staff'])->group(function () {
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/bao-cao', [AdminReportController::class, 'index'])->name('reports.index');
+    Route::get('/bao-cao-doanh-thu', [AdminRevenueReportController::class, 'index'])->name('reports.revenue');
     Route::resource('categories', AdminCategoryController::class)->except('show');
     Route::post('categories/{category}/restore', [AdminCategoryController::class, 'restore'])->name('categories.restore');
     Route::resource('products', AdminProductController::class)->except('show');
