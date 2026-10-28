@@ -9,14 +9,22 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Laravel\Socialite\Facades\Socialite;
+use Laravel\Socialite\Two\InvalidStateException;
 use Throwable;
 
 class GoogleAuthController extends Controller
 {
-    public function redirect()
+    public function redirect(Request $request)
     {
         if (! $this->configured()) {
             return redirect()->route('login')->withErrors(['email' => 'Đăng nhập Google chưa được cấu hình. Vui lòng nhập GOOGLE_CLIENT_ID và GOOGLE_CLIENT_SECRET trong file .env.']);
+        }
+
+        // Google chỉ quay về đúng địa chỉ đã đăng ký (và không nhận tên miền .test của Laragon).
+        // Mở web bằng địa chỉ khác thì chuyển sang địa chỉ đó trước, để phiên đăng nhập và callback cùng một nơi.
+        $callbackOrigin = $this->origin($this->callbackUrl());
+        if ($callbackOrigin !== $request->getSchemeAndHttpHost()) {
+            return redirect()->away($callbackOrigin.route('auth.google', absolute: false));
         }
 
         return $this->driver()->redirect();
@@ -24,12 +32,17 @@ class GoogleAuthController extends Controller
 
     public function callback(Request $request)
     {
-        if (! $this->configured() || $request->filled('error')) {
+        if (! $this->configured() || $request->input('error') === 'access_denied') {
             return redirect()->route('login')->withErrors(['email' => 'Bạn đã hủy đăng nhập bằng Google.']);
+        }
+        if ($request->filled('error')) {
+            return redirect()->route('login')->withErrors(['email' => 'Google từ chối đăng nhập ('.$request->string('error').'). Vui lòng thử lại.']);
         }
 
         try {
             $google = $this->driver()->user();
+        } catch (InvalidStateException) {
+            return redirect()->route('login')->withErrors(['email' => 'Phiên đăng nhập Google đã hết hạn. Vui lòng bấm "Tiếp tục với Google" lại.']);
         } catch (Throwable $exception) {
             report($exception);
 
@@ -89,10 +102,22 @@ class GoogleAuthController extends Controller
         return filled(config('services.google.client_id')) && filled(config('services.google.client_secret'));
     }
 
+    private function callbackUrl(): string
+    {
+        return config('services.google.redirect') ?: route('auth.google.callback');
+    }
+
+    private function origin(string $url): string
+    {
+        $parts = parse_url($url);
+
+        return $parts['scheme'].'://'.$parts['host'].(isset($parts['port']) ? ':'.$parts['port'] : '');
+    }
+
     private function driver()
     {
         return Socialite::driver('google')
-            ->redirectUrl(config('services.google.redirect') ?: route('auth.google.callback'))
+            ->redirectUrl($this->callbackUrl())
             ->with(['prompt' => 'select_account']);
     }
 }

@@ -151,6 +151,18 @@ php artisan schedule:work
 
 Trên server, thêm cron `* * * * * php /duong-dan/artisan schedule:run`. Có thể chạy tay: `php artisan orders:expire-unpaid --minutes=30`.
 
+## Đăng nhập bằng Google
+
+Tạo OAuth Client (loại *Web application*) trong Google Cloud Console, thêm vào **Authorized redirect URIs** đúng địa chỉ callback, rồi khai báo trong `.env`:
+
+```env
+GOOGLE_CLIENT_ID=...
+GOOGLE_CLIENT_SECRET=...
+GOOGLE_REDIRECT_URI=http://localhost:8000/dang-nhap/google/callback
+```
+
+Google chỉ cho phép `http` với `localhost`/`127.0.0.1` và **không nhận tên miền `.test`** của Laragon (báo lỗi `400: invalid_request`). Vì vậy hãy chạy `php artisan serve` (cổng 8000) khi đăng nhập Google. Nếu đang mở web bằng địa chỉ khác (ví dụ `mini-mart-laravel.test`), nút "Tiếp tục với Google" sẽ tự chuyển sang `GOOGLE_REDIRECT_URI` để hoàn tất đăng nhập. Muốn dùng địa chỉ khác, thêm đúng địa chỉ đó vào Google Console và sửa `GOOGLE_REDIRECT_URI`.
+
 ## Khu vực quản trị
 
 Sau khi seed dữ liệu, đăng nhập bằng `admin@minimart.test` với mật khẩu `Password@123`, sau đó mở `/admin`. Tài khoản quản lý có quyền danh mục, sản phẩm và đơn hàng; nhân viên có thể vận hành sản phẩm và đơn hàng nhưng không được thay đổi danh mục.
