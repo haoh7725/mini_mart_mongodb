@@ -143,6 +143,14 @@ VNPAY_RETURN_URL=
 
 Khi chạy local có thể để trống `VNPAY_RETURN_URL`; ứng dụng tự tạo URL `/thanh-toan/vnpay/return`. VNPay IPN chỉ gọi được khi website có địa chỉ HTTPS công khai; URL IPN là `/thanh-toan/vnpay/ipn`.
 
+Đơn VNPay trừ kho ngay khi tạo. Nếu khách bỏ dở thanh toán, lệnh `orders:expire-unpaid` hủy đơn chưa thanh toán sau 30 phút (liên kết VNPay hết hạn sau 15 phút) và hoàn kho. Lệnh được lên lịch chạy 5 phút một lần, cần giữ scheduler chạy:
+
+```powershell
+php artisan schedule:work
+```
+
+Trên server, thêm cron `* * * * * php /duong-dan/artisan schedule:run`. Có thể chạy tay: `php artisan orders:expire-unpaid --minutes=30`.
+
 ## Khu vực quản trị
 
 Sau khi seed dữ liệu, đăng nhập bằng `admin@minimart.test` với mật khẩu `Password@123`, sau đó mở `/admin`. Tài khoản quản lý có quyền danh mục, sản phẩm và đơn hàng; nhân viên có thể vận hành sản phẩm và đơn hàng nhưng không được thay đổi danh mục.

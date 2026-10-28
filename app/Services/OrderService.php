@@ -50,6 +50,29 @@ class OrderService
         });
     }
 
+    // Đơn VNPay bị bỏ dở (khách đóng tab, không có IPN) vẫn giữ hàng trong kho: quá hạn thì hủy và hoàn kho.
+    // Liên kết VNPay hết hạn sau 15 phút, chờ thêm để IPN đến muộn của giao dịch hợp lệ vẫn kịp ghi nhận.
+    public function expireUnpaidOnlinePayments(int $minutes = 30): int
+    {
+        $orderIds = DB::table('payments')->where('method', 'online')->where('status', 'pending')
+            ->where('created_at', '<', now()->subMinutes($minutes))->pluck('order_id');
+
+        return $orderIds->filter(fn ($orderId) => DB::transaction(function () use ($orderId) {
+            // Cùng thứ tự khóa với VnpayController để IPN đến cùng lúc không ghi nhận đơn đã hủy.
+            $payment = DB::table('payments')->where('order_id', $orderId)->where('method', 'online')->lockForUpdate()->first();
+            if (! $payment || $payment->status !== 'pending') {
+                return false;
+            }
+            DB::table('payments')->where('id', $payment->id)->update(['status' => 'failed', 'updated_at' => now()]);
+            $order = Order::query()->findOrFail($orderId);
+            $order->update(['payment_status' => 'failed']);
+            $this->cancel($order);
+            $order->update(['cancelled_at' => now(), 'cancel_reason' => 'Quá hạn thanh toán VNPay']);
+
+            return true;
+        }))->count();
+    }
+
     // Điểm xanh chỉ tồn tại khi đơn đã hoàn thành.
     public function syncGreenPoints(Order $order): void
     {

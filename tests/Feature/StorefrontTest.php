@@ -328,6 +328,32 @@ class StorefrontTest extends TestCase
         $this->assertSame($before, Product::with('inventoryLots')->find($product->id)->stock);
     }
 
+    public function test_abandoned_vnpay_orders_expire_and_restock(): void
+    {
+        config()->set('services.vnpay', [
+            'url' => 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html',
+            'tmn_code' => 'TESTCODE', 'hash_secret' => 'test-secret', 'return_url' => null,
+        ]);
+        $product = Product::with('inventoryLots')->firstOrFail();
+        $before = $product->stock;
+        $this->checkout([$product->id => 2], 'vnpay')->assertRedirect();
+        $order = Order::query()->latest('id')->firstOrFail();
+
+        $this->artisan('orders:expire-unpaid')->assertSuccessful();
+        $this->assertDatabaseHas('orders', ['id' => $order->id, 'status' => 'pending']);
+
+        $this->travel(31)->minutes();
+        $this->artisan('orders:expire-unpaid')->assertSuccessful();
+        $this->assertDatabaseHas('orders', ['id' => $order->id, 'status' => 'cancelled', 'payment_status' => 'failed', 'cancel_reason' => 'Quá hạn thanh toán VNPay']);
+        $this->assertDatabaseHas('payments', ['order_id' => $order->id, 'status' => 'failed']);
+        $this->assertSame($before, Product::with('inventoryLots')->find($product->id)->stock);
+
+        // IPN đến sau khi đơn đã hết hạn không được ghi nhận thanh toán.
+        $this->vnpayCallback($order->fresh(), '00', '123456')->assertOk();
+        $this->assertDatabaseHas('payments', ['order_id' => $order->id, 'status' => 'failed', 'transaction_id' => null]);
+        $this->assertDatabaseHas('orders', ['id' => $order->id, 'status' => 'cancelled', 'payment_status' => 'failed']);
+    }
+
     public function test_reopening_campaign_keeps_rescued_history_active(): void
     {
         $admin = User::where('email', 'admin@minimart.test')->firstOrFail();
