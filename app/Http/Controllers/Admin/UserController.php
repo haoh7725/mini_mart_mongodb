@@ -27,7 +27,7 @@ class UserController extends Controller
 
     public function create()
     {
-        return view('admin.users.form', ['user' => new User(), 'roles' => Role::orderBy('id')->get()]);
+        return view('admin.users.form', ['user' => new User, 'roles' => Role::orderBy('id')->get()]);
     }
 
     public function store(Request $request)
@@ -51,8 +51,11 @@ class UserController extends Controller
             return back()->withErrors(['role_id' => 'Bạn không thể tự khóa tài khoản hoặc tự thay đổi vai trò của mình.'])->withInput();
         }
 
-        if (blank($data['password'] ?? null)) unset($data['password']);
-        else $data['password'] = Hash::make($data['password']);
+        if (blank($data['password'] ?? null)) {
+            unset($data['password']);
+        } else {
+            $data['password'] = Hash::make($data['password']);
+        }
         $user->update($data);
 
         return redirect()->route('admin.users.index')->with('success', 'Đã cập nhật tài khoản.');

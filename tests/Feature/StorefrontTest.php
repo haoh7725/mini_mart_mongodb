@@ -5,9 +5,9 @@ namespace Tests\Feature;
 use App\Models\InventoryLot;
 use App\Models\Order;
 use App\Models\Product;
-use App\Models\Role;
 use App\Models\RescueCampaign;
 use App\Models\Review;
+use App\Models\Role;
 use App\Models\User;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -213,9 +213,9 @@ class StorefrontTest extends TestCase
     {
         $customer = User::where('email', 'customer@minimart.test')->firstOrFail();
         $product = Product::firstOrFail();
-        $order = Order::create(['user_id'=>$customer->id,'code'=>'MM-REORDER','customer_name'=>$customer->name,'customer_phone'=>'0901234567','customer_email'=>$customer->email,'shipping_address'=>'TP.HCM','subtotal'=>100000,'shipping_fee'=>0,'total_amount'=>100000]);
-        $order->items()->create(['product_id'=>$product->id,'product_name'=>$product->name,'sku'=>$product->sku,'quantity'=>2,'unit_price'=>50000,'line_total'=>100000]);
-        $this->actingAs($customer)->post(route('account.orders.reorder',$order->code))->assertRedirect(route('cart.index'));
+        $order = Order::create(['user_id' => $customer->id, 'code' => 'MM-REORDER', 'customer_name' => $customer->name, 'customer_phone' => '0901234567', 'customer_email' => $customer->email, 'shipping_address' => 'TP.HCM', 'subtotal' => 100000, 'shipping_fee' => 0, 'total_amount' => 100000]);
+        $order->items()->create(['product_id' => $product->id, 'product_name' => $product->name, 'sku' => $product->sku, 'quantity' => 2, 'unit_price' => 50000, 'line_total' => 100000]);
+        $this->actingAs($customer)->post(route('account.orders.reorder', $order->code))->assertRedirect(route('cart.index'));
         $this->assertSame(2, session('cart')[$product->id]);
     }
 
@@ -223,14 +223,14 @@ class StorefrontTest extends TestCase
     {
         $customer = User::where('email', 'customer@minimart.test')->firstOrFail();
         $product = Product::firstOrFail();
-        $order = Order::create(['user_id'=>$customer->id,'code'=>'MM-REVIEW','customer_name'=>$customer->name,'customer_phone'=>'0901234567','customer_email'=>$customer->email,'shipping_address'=>'TP.HCM','status'=>'completed','payment_status'=>'paid','subtotal'=>100000,'shipping_fee'=>0,'total_amount'=>100000]);
-        $item = $order->items()->create(['product_id'=>$product->id,'product_name'=>$product->name,'sku'=>$product->sku,'quantity'=>1,'unit_price'=>100000,'line_total'=>100000]);
-        $this->actingAs($customer)->post(route('account.reviews.store',$item), ['rating'=>5,'content'=>'Sản phẩm rất tươi và đóng gói cẩn thận.'])->assertRedirect();
-        $this->assertDatabaseHas('reviews',['order_item_id'=>$item->id,'status'=>'pending','rating'=>5]);
-        $admin = User::where('email','admin@minimart.test')->firstOrFail();
+        $order = Order::create(['user_id' => $customer->id, 'code' => 'MM-REVIEW', 'customer_name' => $customer->name, 'customer_phone' => '0901234567', 'customer_email' => $customer->email, 'shipping_address' => 'TP.HCM', 'status' => 'completed', 'payment_status' => 'paid', 'subtotal' => 100000, 'shipping_fee' => 0, 'total_amount' => 100000]);
+        $item = $order->items()->create(['product_id' => $product->id, 'product_name' => $product->name, 'sku' => $product->sku, 'quantity' => 1, 'unit_price' => 100000, 'line_total' => 100000]);
+        $this->actingAs($customer)->post(route('account.reviews.store', $item), ['rating' => 5, 'content' => 'Sản phẩm rất tươi và đóng gói cẩn thận.'])->assertRedirect();
+        $this->assertDatabaseHas('reviews', ['order_item_id' => $item->id, 'status' => 'pending', 'rating' => 5]);
+        $admin = User::where('email', 'admin@minimart.test')->firstOrFail();
         $review = Review::firstOrFail();
-        $this->actingAs($admin)->patch(route('admin.reviews.update',$review),['status'=>'approved'])->assertRedirect();
-        $this->get(route('products.show',$product))->assertOk()->assertSee('Đã mua hàng');
+        $this->actingAs($admin)->patch(route('admin.reviews.update', $review), ['status' => 'approved'])->assertRedirect();
+        $this->get(route('products.show', $product))->assertOk()->assertSee('Đã mua hàng');
     }
 
     public function test_cooking_assistant_page_explains_missing_api_key(): void
@@ -263,7 +263,9 @@ class StorefrontTest extends TestCase
 
     private function checkout(array $cart, string $payment = 'cod', ?User $user = null)
     {
-        if ($user) $this->actingAs($user);
+        if ($user) {
+            $this->actingAs($user);
+        }
 
         return $this->withSession(['cart' => $cart])->post('/thanh-toan', [
             'customer_name' => 'Khách kiểm thử', 'customer_phone' => '0901234567',
@@ -324,6 +326,32 @@ class StorefrontTest extends TestCase
 
         $this->assertSame(2, DB::table('payments')->where('status', 'failed')->whereNull('transaction_id')->count());
         $this->assertSame($before, Product::with('inventoryLots')->find($product->id)->stock);
+    }
+
+    public function test_abandoned_vnpay_orders_expire_and_restock(): void
+    {
+        config()->set('services.vnpay', [
+            'url' => 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html',
+            'tmn_code' => 'TESTCODE', 'hash_secret' => 'test-secret', 'return_url' => null,
+        ]);
+        $product = Product::with('inventoryLots')->firstOrFail();
+        $before = $product->stock;
+        $this->checkout([$product->id => 2], 'vnpay')->assertRedirect();
+        $order = Order::query()->latest('id')->firstOrFail();
+
+        $this->artisan('orders:expire-unpaid')->assertSuccessful();
+        $this->assertDatabaseHas('orders', ['id' => $order->id, 'status' => 'pending']);
+
+        $this->travel(31)->minutes();
+        $this->artisan('orders:expire-unpaid')->assertSuccessful();
+        $this->assertDatabaseHas('orders', ['id' => $order->id, 'status' => 'cancelled', 'payment_status' => 'failed', 'cancel_reason' => 'Quá hạn thanh toán VNPay']);
+        $this->assertDatabaseHas('payments', ['order_id' => $order->id, 'status' => 'failed']);
+        $this->assertSame($before, Product::with('inventoryLots')->find($product->id)->stock);
+
+        // IPN đến sau khi đơn đã hết hạn không được ghi nhận thanh toán.
+        $this->vnpayCallback($order->fresh(), '00', '123456')->assertOk();
+        $this->assertDatabaseHas('payments', ['order_id' => $order->id, 'status' => 'failed', 'transaction_id' => null]);
+        $this->assertDatabaseHas('orders', ['id' => $order->id, 'status' => 'cancelled', 'payment_status' => 'failed']);
     }
 
     public function test_reopening_campaign_keeps_rescued_history_active(): void

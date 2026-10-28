@@ -4,9 +4,9 @@ namespace Database\Seeders;
 
 use App\Models\Role;
 use App\Models\User;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
 
 class DatabaseSeeder extends Seeder
 {
@@ -61,18 +61,18 @@ class DatabaseSeeder extends Seeder
         DB::table('warehouses')->updateOrInsert(['code' => 'KHO-HCM'], ['name' => 'Kho trung tâm', 'address' => 'TP. Hồ Chí Minh', 'is_active' => true, 'created_at' => now(), 'updated_at' => now()]);
         $warehouseId = DB::table('warehouses')->where('code', 'KHO-HCM')->value('id');
         $products = [
-            ['Rau cải ngọt VietGAP 500g','rau-cai-ngot-vietgap','RAU001','rau-cu-qua',28000,null,'Rau xanh giòn ngọt, thu hoạch trong ngày.'],
-            ['Cà chua beef Đà Lạt 500g','ca-chua-beef-da-lat','RAU002','rau-cu-qua',35000,29000,'Cà chua mọng nước, phù hợp salad và nấu ăn.'],
-            ['Bơ sáp Tây Nguyên 1kg','bo-sap-tay-nguyen','RAU003','rau-cu-qua',89000,79000,'Bơ dẻo béo tự nhiên, tuyển chọn trái vừa chín.'],
-            ['Ức gà phi lê tươi 500g','uc-ga-phi-le-tuoi','THIT001','thit-hai-san',72000,null,'Thịt gà tươi, sơ chế sạch, giàu protein.'],
-            ['Cá hồi Na Uy phi lê 300g','ca-hoi-na-uy-phi-le','THIT002','thit-hai-san',189000,169000,'Cá hồi nhập khẩu, béo thơm và giàu Omega-3.'],
-            ['Thịt heo ba rọi 500g','thit-heo-ba-roi','THIT003','thit-hai-san',99000,null,'Ba rọi heo tươi với tỷ lệ nạc mỡ cân bằng.'],
-            ['Sữa tươi không đường 1L','sua-tuoi-khong-duong','SUA001','sua-trung',39000,35000,'Sữa tươi thanh trùng giàu canxi, không đường.'],
-            ['Trứng gà thả vườn hộp 10','trung-ga-tha-vuon','SUA002','sua-trung',42000,null,'Trứng gà tươi, lòng đỏ đậm màu tự nhiên.'],
-            ['Nước cam nguyên chất 1L','nuoc-cam-nguyen-chat','NUOC001','do-uong',65000,55000,'Nước cam ép nguyên chất, không chất bảo quản.'],
-            ['Cà phê rang xay nguyên chất 500g','ca-phe-rang-xay','NUOC002','do-uong',145000,null,'Hương thơm đậm, vị cân bằng kiểu Việt.'],
-            ['Gạo ST25 túi 5kg','gao-st25-5kg','KHO001','do-kho',185000,169000,'Gạo thơm thượng hạng, hạt dài, cơm dẻo.'],
-            ['Nước giặt thiên nhiên 3L','nuoc-giat-thien-nhien','NHA001','cham-soc-nha-cua',159000,139000,'Sạch dịu nhẹ, hương thơm tươi mát.'],
+            ['Rau cải ngọt VietGAP 500g', 'rau-cai-ngot-vietgap', 'RAU001', 'rau-cu-qua', 28000, null, 'Rau xanh giòn ngọt, thu hoạch trong ngày.'],
+            ['Cà chua beef Đà Lạt 500g', 'ca-chua-beef-da-lat', 'RAU002', 'rau-cu-qua', 35000, 29000, 'Cà chua mọng nước, phù hợp salad và nấu ăn.'],
+            ['Bơ sáp Tây Nguyên 1kg', 'bo-sap-tay-nguyen', 'RAU003', 'rau-cu-qua', 89000, 79000, 'Bơ dẻo béo tự nhiên, tuyển chọn trái vừa chín.'],
+            ['Ức gà phi lê tươi 500g', 'uc-ga-phi-le-tuoi', 'THIT001', 'thit-hai-san', 72000, null, 'Thịt gà tươi, sơ chế sạch, giàu protein.'],
+            ['Cá hồi Na Uy phi lê 300g', 'ca-hoi-na-uy-phi-le', 'THIT002', 'thit-hai-san', 189000, 169000, 'Cá hồi nhập khẩu, béo thơm và giàu Omega-3.'],
+            ['Thịt heo ba rọi 500g', 'thit-heo-ba-roi', 'THIT003', 'thit-hai-san', 99000, null, 'Ba rọi heo tươi với tỷ lệ nạc mỡ cân bằng.'],
+            ['Sữa tươi không đường 1L', 'sua-tuoi-khong-duong', 'SUA001', 'sua-trung', 39000, 35000, 'Sữa tươi thanh trùng giàu canxi, không đường.'],
+            ['Trứng gà thả vườn hộp 10', 'trung-ga-tha-vuon', 'SUA002', 'sua-trung', 42000, null, 'Trứng gà tươi, lòng đỏ đậm màu tự nhiên.'],
+            ['Nước cam nguyên chất 1L', 'nuoc-cam-nguyen-chat', 'NUOC001', 'do-uong', 65000, 55000, 'Nước cam ép nguyên chất, không chất bảo quản.'],
+            ['Cà phê rang xay nguyên chất 500g', 'ca-phe-rang-xay', 'NUOC002', 'do-uong', 145000, null, 'Hương thơm đậm, vị cân bằng kiểu Việt.'],
+            ['Gạo ST25 túi 5kg', 'gao-st25-5kg', 'KHO001', 'do-kho', 185000, 169000, 'Gạo thơm thượng hạng, hạt dài, cơm dẻo.'],
+            ['Nước giặt thiên nhiên 3L', 'nuoc-giat-thien-nhien', 'NHA001', 'cham-soc-nha-cua', 159000, 139000, 'Sạch dịu nhẹ, hương thơm tươi mát.'],
         ];
         foreach ($products as $index => [$name,$slug,$sku,$category,$price,$sale,$description]) {
             DB::table('products')->updateOrInsert(['sku' => $sku], [
@@ -89,6 +89,7 @@ class DatabaseSeeder extends Seeder
         }
 
         $this->call(BrandSeeder::class);
+        $this->call(CouponSeeder::class);
 
         if (! app()->environment('testing')) {
             $this->call(DemoDataSeeder::class);

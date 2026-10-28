@@ -6,7 +6,10 @@ use Illuminate\Foundation\Http\FormRequest;
 
 class CheckoutRequest extends FormRequest
 {
-    public function authorize(): bool { return true; }
+    public function authorize(): bool
+    {
+        return true;
+    }
 
     protected function prepareForValidation(): void
     {
@@ -33,6 +36,7 @@ class CheckoutRequest extends FormRequest
             'ward_name' => ['nullable', 'string', 'max:100'],
             'customer_note' => ['nullable', 'string', 'max:500'],
             'payment' => ['required', 'in:cod,vnpay'],
+            'coupon_code' => ['nullable', 'string', 'max:50'],
         ];
     }
 

@@ -21,12 +21,30 @@ class Order extends Model
         'Lý do khác',
     ];
 
+    public const FREE_SHIPPING_THRESHOLD = 300000;
+
+    public const SHIPPING_FEE = 25000;
+
+    // Phí giao tính trên tiền hàng trước khi áp mã giảm giá.
+    public static function shippingFeeFor(float $subtotal): int
+    {
+        return $subtotal >= self::FREE_SHIPPING_THRESHOLD ? 0 : self::SHIPPING_FEE;
+    }
+
     protected function casts(): array
     {
         return ['cancelled_at' => 'datetime'];
     }
 
-    public function user() { return $this->belongsTo(User::class); }
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    public function coupon()
+    {
+        return $this->belongsTo(Coupon::class);
+    }
 
     // Khách chỉ tự hủy được khi đơn chưa bắt đầu xử lý và chưa trả tiền (đã trả cần shop hoàn tiền).
     public function canBeCancelledByCustomer(): bool

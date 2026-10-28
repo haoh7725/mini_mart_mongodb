@@ -4,18 +4,29 @@ namespace App\Http\Controllers;
 
 use App\Models\Role;
 use App\Models\User;
+use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Auth\Events\PasswordReset;
+use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
 
 class AuthController extends Controller
 {
-    public function showLogin() { return view('auth.login'); }
-    public function showRegister() { return view('auth.register'); }
-    public function showForgotPassword() { return view('auth.forgot-password'); }
+    public function showLogin()
+    {
+        return view('auth.login');
+    }
+
+    public function showRegister()
+    {
+        return view('auth.register');
+    }
+
+    public function showForgotPassword()
+    {
+        return view('auth.forgot-password');
+    }
 
     public function login(Request $request)
     {
@@ -29,6 +40,7 @@ class AuthController extends Controller
         }
         if (! $request->user()->is_active) {
             Auth::logout();
+
             return back()->withErrors(['email' => 'Tài khoản đã bị khóa.'])->onlyInput('email');
         }
         $request->session()->regenerate();
@@ -57,6 +69,7 @@ class AuthController extends Controller
     {
         $request->validate(['email' => ['required', 'email']]);
         Password::sendResetLink($request->only('email'));
+
         return back()->with('success', 'Nếu email tồn tại, hướng dẫn đặt lại mật khẩu đã được ghi vào mail log.');
     }
 
@@ -75,6 +88,7 @@ class AuthController extends Controller
             $user->forceFill(['password' => Hash::make($password), 'remember_token' => Str::random(60)])->save();
             event(new PasswordReset($user));
         });
+
         return $status === Password::PASSWORD_RESET
             ? redirect()->route('login')->with('success', 'Mật khẩu đã được cập nhật.')
             : back()->withErrors(['email' => __($status)]);
@@ -85,6 +99,7 @@ class AuthController extends Controller
         Auth::logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
+
         return redirect()->route('home')->with('success', 'Đã đăng xuất.');
     }
 }

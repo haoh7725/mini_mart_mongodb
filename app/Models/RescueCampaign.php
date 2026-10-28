@@ -13,8 +13,15 @@ class RescueCampaign extends Model
         return ['is_active' => 'boolean', 'starts_at' => 'datetime', 'ends_at' => 'datetime'];
     }
 
-    public function product() { return $this->belongsTo(Product::class); }
-    public function inventoryLot() { return $this->belongsTo(InventoryLot::class); }
+    public function product()
+    {
+        return $this->belongsTo(Product::class);
+    }
+
+    public function inventoryLot()
+    {
+        return $this->belongsTo(InventoryLot::class);
+    }
 
     public function isRunning(): bool
     {

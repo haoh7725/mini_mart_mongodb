@@ -32,6 +32,7 @@ class GoogleAuthController extends Controller
             $google = $this->driver()->user();
         } catch (Throwable $exception) {
             report($exception);
+
             return redirect()->route('login')->withErrors(['email' => 'Không thể đăng nhập bằng Google. Vui lòng thử lại.']);
         }
 

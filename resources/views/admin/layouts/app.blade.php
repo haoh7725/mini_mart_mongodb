@@ -5,7 +5,13 @@
 <a class="{{ request()->routeIs('admin.categories.*')?'active':'' }}" href="{{ route('admin.categories.index') }}">Danh mục</a>
 <a class="{{ request()->routeIs('admin.products.*')?'active':'' }}" href="{{ route('admin.products.index') }}">Sản phẩm</a>
 <a class="{{ request()->routeIs('admin.orders.*')?'active':'' }}" href="{{ route('admin.orders.index') }}">Đơn hàng</a>
+
 <a class="{{ request()->routeIs('admin.reports.revenue')?'active':'' }}" href="{{ route('admin.reports.revenue') }}">Báo cáo doanh thu</a>
+@if(auth()->user()->hasRole('super-admin', 'manager'))
+<a class="{{ request()->routeIs('admin.coupons.*')?'active':'' }}" href="{{ route('admin.coupons.index') }}">Mã giảm giá</a>
+@endif
+
+@if(auth()->user()->hasRole('super-admin', 'manager'))<a class="{{ request()->routeIs('admin.coupons.*')?'active':'' }}" href="{{ route('admin.coupons.index') }}">Mã giảm giá</a>@endif
 <a class="{{ request()->routeIs('admin.rescue.*')?'active':'' }}" href="{{ route('admin.rescue.index') }}">BIG SALES</a>
 <a class="{{ request()->routeIs('admin.reviews.*')?'active':'' }}" href="{{ route('admin.reviews.index') }}">Đánh giá</a>
 @if(auth()->user()->hasRole('super-admin'))<a class="{{ request()->routeIs('admin.users.*')?'active':'' }}" href="{{ route('admin.users.index') }}">Tài khoản & phân quyền</a>@endif

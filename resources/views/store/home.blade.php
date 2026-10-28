@@ -73,6 +73,8 @@
     <div class="product-grid">@foreach($featured as $product)<x-product-card :product="$product" />@endforeach</div>
 </section>
 
-<section class="container promo"><div><span>ƯU ĐÃI THÀNH VIÊN MỚI</span><h2>Giảm 15% đơn hàng đầu tiên</h2><p>Nhập mã <b>WELCOME15</b> khi thanh toán. Áp dụng cho đơn từ 300.000đ.</p></div><a class="button light" href="{{ route('products.index') }}">Chọn sản phẩm</a></section>
+@if(\App\Models\Coupon::where('code', 'WELCOME15')->where('is_active', true)->exists())
+<section class="container promo"><div><span>ƯU ĐÃI MUA SẮM</span><h2>Mã ưu đãi WELCOME15</h2><p>Nhập mã <b>WELCOME15</b> tại bước thanh toán để kiểm tra mức giảm và điều kiện áp dụng hiện tại.</p></div><a class="button light" href="{{ route('products.index') }}">Chọn sản phẩm</a></section>
+@endif
 <x-halloween-popup />
 @endsection

@@ -50,10 +50,13 @@ class CookingAssistantService
 
         $text = data_get($response, 'candidates.0.content.parts.0.text');
         $result = json_decode((string) $text, true);
-        if (! is_array($result)) throw new RuntimeException('Không đọc được câu trả lời từ trợ lý.');
+        if (! is_array($result)) {
+            throw new RuntimeException('Không đọc được câu trả lời từ trợ lý.');
+        }
 
         $allowedIds = $products->pluck('id')->map(fn ($id) => (int) $id);
         $result['product_ids'] = collect($result['product_ids'] ?? [])->map(fn ($id) => (int) $id)->intersect($allowedIds)->unique()->values()->all();
+
         return $result;
     }
 }

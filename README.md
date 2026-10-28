@@ -109,6 +109,21 @@ npm run dev
 
 ## Kiểm thử
 
+### Mã giảm giá
+
+Quản lý và Super Admin quản trị mã tại `/admin/coupons`: tạo, sửa và bật/tắt mã,
+giảm theo phần trăm hoặc số tiền, đơn tối thiểu, mức giảm tối đa, thời gian hiệu lực
+và giới hạn tổng lượt dùng. Khách nhập mã tại trang thanh toán, bấm Áp dụng để xem
+tổng tiền mới hoặc Bỏ mã. Mã được kiểm tra lại trong giao dịch tạo đơn, áp dụng cho
+cả COD và VNPay. Mỗi đơn dùng một mã; giảm trên tiền hàng, không giảm phí giao.
+Ngưỡng miễn phí giao hàng tính trên tiền hàng trước khi áp dụng mã.
+
+Lượt dùng được giữ khi tạo đơn, trả lại một lần khi hủy đơn. Thanh toán thất bại
+vẫn giữ lượt đến khi đơn được hủy. Không xóa mã đã dùng; tắt mã để giữ lịch sử.
+`WELCOME15` là mã mẫu giảm 15% cho đơn từ 300.000đ, không giới hạn đơn đầu tiên.
+Trên cơ sở dữ liệu đã có, chạy `php artisan db:seed --class=CouponSeeder` để thêm mã
+mẫu mà không đặt lại dữ liệu khác. Seeder không ghi đè mã đã tồn tại.
+
 ```powershell
 composer test
 ```
@@ -127,6 +142,14 @@ VNPAY_RETURN_URL=
 ```
 
 Khi chạy local có thể để trống `VNPAY_RETURN_URL`; ứng dụng tự tạo URL `/thanh-toan/vnpay/return`. VNPay IPN chỉ gọi được khi website có địa chỉ HTTPS công khai; URL IPN là `/thanh-toan/vnpay/ipn`.
+
+Đơn VNPay trừ kho ngay khi tạo. Nếu khách bỏ dở thanh toán, lệnh `orders:expire-unpaid` hủy đơn chưa thanh toán sau 30 phút (liên kết VNPay hết hạn sau 15 phút) và hoàn kho. Lệnh được lên lịch chạy 5 phút một lần, cần giữ scheduler chạy:
+
+```powershell
+php artisan schedule:work
+```
+
+Trên server, thêm cron `* * * * * php /duong-dan/artisan schedule:run`. Có thể chạy tay: `php artisan orders:expire-unpaid --minutes=30`.
 
 ## Khu vực quản trị
 
