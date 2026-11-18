@@ -51,7 +51,7 @@ class CookingAssistantController extends Controller
 
     public function addProducts(Request $request)
     {
-        $data = $request->validate(['product_ids' => ['required', 'array', 'max:20'], 'product_ids.*' => ['integer', 'distinct', 'exists:products,id']]);
+        $data = $request->validate(['product_ids' => ['required', 'array', 'max:20'], 'product_ids.*' => ['string', 'distinct', 'exists:products,id']]);
         $products = Product::with('inventoryLots')->whereIn('id', $data['product_ids'])->where('is_active', true)->get();
         $cart = $request->session()->get('cart', []);
         $added = 0;

@@ -1,5 +1,7 @@
 # MiniMart — Website siêu thị mini
 
+Bản này đã chuyển sang **MongoDB**. Hướng dẫn chạy tại [docs/MONGODB.md](docs/MONGODB.md).
+
 Website bán hàng và quản trị cho một siêu thị mini, xây dựng bằng **Laravel 12**. Khách mua hàng trực tuyến, nhân viên quản lý sản phẩm và đơn hàng, đội shipper của cửa hàng giao hàng trong 2 giờ và cập nhật hành trình cho khách.
 
 > Đồ án học phần **Lập trình mã nguồn mở** — Nhóm 5.
@@ -41,7 +43,7 @@ Website bán hàng và quản trị cho một siêu thị mini, xây dựng bằ
 - Xác nhận lấy hàng, gửi vị trí cho khách, xác nhận giao thành công hoặc ghi nhận giao chưa thành công.
 
 ### Hệ thống
-- Tồn kho theo **lô hàng**: trừ kho trong cùng một giao dịch, khóa dòng chống bán vượt, ghi lịch sử xuất/nhập kho; hủy đơn tự hoàn kho.
+- Tồn kho theo **lô hàng**: trừ kho trong cùng một giao dịch, cập nhật có điều kiện chống bán vượt, ghi lịch sử xuất/nhập kho; hủy đơn tự hoàn kho.
 - Đơn VNPay bỏ dở **tự hủy sau 30 phút** và hoàn kho.
 - Thông báo chỉ gửi sau khi giao dịch cơ sở dữ liệu hoàn tất; mọi thay đổi đơn hàng đi qua `OrderService`.
 
@@ -50,7 +52,7 @@ Website bán hàng và quản trị cho một siêu thị mini, xây dựng bằ
 | Thành phần | Công nghệ |
 |---|---|
 | Backend | PHP 8.2+, Laravel 12, Laravel Socialite |
-| Cơ sở dữ liệu | MySQL 8 (SQLite trong bộ nhớ khi chạy test) |
+| Cơ sở dữ liệu | MongoDB 8, replica set (database riêng khi chạy test) |
 | Giao diện | Blade, Bootstrap 5, Vite 7, JavaScript thuần |
 | Thanh toán | VNPay Sandbox |
 | Lưu ảnh | Ổ `public` của Laravel hoặc Supabase Storage (giao thức S3) |
@@ -61,7 +63,7 @@ Website bán hàng và quản trị cho một siêu thị mini, xây dựng bằ
 
 ## Cài đặt
 
-**Yêu cầu:** PHP 8.2+, Composer, Node.js 20.19+ (Vite 7), MySQL 8 (Laragon đã có sẵn PHP và MySQL).
+**Yêu cầu:** PHP 8.2+, Composer, Node.js 20.19+ (Vite 7), MongoDB replica set và PHP extension `mongodb`. Trên Windows có thể dùng `tools/setup-windows.ps1`.
 
 ```powershell
 git clone https://github.com/NguyenEvelyn/Mini_mart_php.git
@@ -71,7 +73,7 @@ Copy-Item .env.example .env      # macOS/Linux: cp .env.example .env
 php artisan key:generate
 ```
 
-Tạo database `mini_mart` trong MySQL (Laragon: *Menu → MySQL → Create database*), kiểm tra thông tin `DB_*` trong `.env`, rồi chạy:
+Khởi động MongoDB replica set bằng `./tools/start-mongodb.ps1` hoặc dùng MongoDB Atlas. Kiểm tra `DB_URI`, `DB_DATABASE` trong `.env`, rồi chạy:
 
 ```powershell
 php artisan migrate --seed
@@ -215,7 +217,8 @@ app/
   Support/                 Notifier (gửi thông báo), AssistantPet (thú cưng trợ lý)
   Notifications/           StoreNotification (thông báo lưu trong database)
 database/
-  migrations/, seeders/    Cấu trúc bảng và dữ liệu mẫu
+  migrations/, seeders/    Collection, index và dữ liệu mẫu MongoDB
+  sql-migrations/          Migration MySQL cũ, chỉ lưu để tham khảo
 resources/
   views/store, account     Giao diện cửa hàng và tài khoản khách
   views/admin              Giao diện quản trị

@@ -41,7 +41,7 @@ class CookingAssistantService
                             'answer' => ['type' => 'string'],
                             'ingredients' => ['type' => 'array', 'items' => ['type' => 'string']],
                             'steps' => ['type' => 'array', 'items' => ['type' => 'string']],
-                            'product_ids' => ['type' => 'array', 'items' => ['type' => 'integer']],
+                            'product_ids' => ['type' => 'array', 'items' => ['type' => 'string']],
                         ],
                         'required' => ['dish', 'answer', 'ingredients', 'steps', 'product_ids'],
                     ],
@@ -54,8 +54,8 @@ class CookingAssistantService
             throw new RuntimeException('Không đọc được câu trả lời từ trợ lý.');
         }
 
-        $allowedIds = $products->pluck('id')->map(fn ($id) => (int) $id);
-        $result['product_ids'] = collect($result['product_ids'] ?? [])->map(fn ($id) => (int) $id)->intersect($allowedIds)->unique()->values()->all();
+        $allowedIds = $products->pluck('id')->map(fn ($id) => (string) $id);
+        $result['product_ids'] = collect($result['product_ids'] ?? [])->map(fn ($id) => (string) $id)->intersect($allowedIds)->unique()->values()->all();
 
         return $result;
     }

@@ -60,7 +60,7 @@ class CategoryController extends Controller
         return back()->with('success', 'Đã chuyển danh mục vào thùng rác.');
     }
 
-    public function restore(int $category)
+    public function restore(string $category)
     {
         Category::withTrashed()->findOrFail($category)->restore();
 

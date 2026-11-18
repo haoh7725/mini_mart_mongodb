@@ -73,7 +73,7 @@ class ShipperController extends Controller
 
     private function authorizeOrder(Request $request, Order $order, array $statuses): void
     {
-        abort_unless((int) $order->shipper_id === (int) $request->user()->id, 403, 'Đơn này không được giao cho bạn.');
+        abort_unless((string) $order->shipper_id === (string) $request->user()->id, 403, 'Đơn này không được giao cho bạn.');
         abort_unless(in_array($order->status, $statuses, true), 422, 'Đơn '.$order->code.' đang ở trạng thái "'.$order->statusLabel().'", không thể thực hiện thao tác này.');
     }
 }

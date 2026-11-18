@@ -57,13 +57,13 @@ class DatabaseSeeder extends Seeder
                 $category + ['is_active' => true, 'created_at' => now(), 'updated_at' => now()],
             );
 
-            return [$category['slug'] => DB::table('categories')->where('slug', $category['slug'])->value('id')];
+            return [$category['slug'] => (string) DB::table('categories')->where('slug', $category['slug'])->value('id')];
         });
 
         DB::table('units')->updateOrInsert(['symbol' => 'sp'], ['name' => 'Sản phẩm', 'created_at' => now(), 'updated_at' => now()]);
-        $unitId = DB::table('units')->where('symbol', 'sp')->value('id');
+        $unitId = (string) DB::table('units')->where('symbol', 'sp')->value('id');
         DB::table('warehouses')->updateOrInsert(['code' => 'KHO-HCM'], ['name' => 'Kho trung tâm', 'address' => 'TP. Hồ Chí Minh', 'is_active' => true, 'created_at' => now(), 'updated_at' => now()]);
-        $warehouseId = DB::table('warehouses')->where('code', 'KHO-HCM')->value('id');
+        $warehouseId = (string) DB::table('warehouses')->where('code', 'KHO-HCM')->value('id');
         $products = [
             ['Rau cải ngọt VietGAP 500g', 'rau-cai-ngot-vietgap', 'RAU001', 'rau-cu-qua', 28000, null, 'Rau xanh giòn ngọt, thu hoạch trong ngày.'],
             ['Cà chua beef Đà Lạt 500g', 'ca-chua-beef-da-lat', 'RAU002', 'rau-cu-qua', 35000, 29000, 'Cà chua mọng nước, phù hợp salad và nấu ăn.'],
@@ -83,12 +83,12 @@ class DatabaseSeeder extends Seeder
                 'category_id' => $categories[$category], 'unit_id' => $unitId, 'name' => $name, 'slug' => $slug,
                 'short_description' => $description, 'description' => $description,
                 'cost_price' => $price * .7, 'selling_price' => $price, 'sale_price' => $sale,
-                'is_featured' => $index < 8, 'is_active' => true, 'created_at' => now(), 'updated_at' => now(),
+                'brand_id' => null, 'is_featured' => $index < 8, 'is_active' => true, 'created_at' => now(), 'updated_at' => now(),
             ]);
-            $productId = DB::table('products')->where('sku', $sku)->value('id');
+            $productId = (string) DB::table('products')->where('sku', $sku)->value('id');
             DB::table('inventory_lots')->updateOrInsert(
                 ['warehouse_id' => $warehouseId, 'product_id' => $productId, 'product_variant_id' => null],
-                ['quantity' => 50 + $index * 3, 'unit_cost' => $price * .7, 'created_at' => now(), 'updated_at' => now()],
+                ['reserved_quantity' => 0, 'expires_at' => null, 'quantity' => 50 + $index * 3, 'unit_cost' => $price * .7, 'created_at' => now(), 'updated_at' => now()],
             );
         }
 

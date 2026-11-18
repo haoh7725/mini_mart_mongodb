@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\GreenPointTransaction;
 use App\Models\Order;
 use App\Models\ReturnRequest;
+use App\Support\DocumentTransaction;
 use App\Support\Notifier;
 use Illuminate\Support\Facades\DB;
 
@@ -99,8 +100,8 @@ class OrderService
     // Duyệt yêu cầu trả hàng. Hàng tươi sống trả về không tự nhập lại kho; shop tự kiểm tra rồi điều chỉnh.
     public function resolveReturn(Order $order, bool $approve, ?string $note = null): bool
     {
-        return DB::transaction(function () use ($order, $approve, $note) {
-            $request = ReturnRequest::query()->where('order_id', $order->id)->lockForUpdate()->first();
+        return DocumentTransaction::run(function () use ($order, $approve, $note) {
+            $request = ReturnRequest::query()->where('order_id', $order->id)->first();
             if (! $request || $request->status !== 'pending') {
                 return false;
             }
@@ -132,9 +133,9 @@ class OrderService
     // để callback VNPay đến muộn không ghi nhận nữa.
     public function cancelByCustomer(Order $order, string $reason): bool
     {
-        return DB::transaction(function () use ($order, $reason) {
+        return DocumentTransaction::run(function () use ($order, $reason) {
             // Khóa đơn để shop không chuyển sang "đang giao" cùng lúc khách bấm hủy.
-            $locked = Order::query()->lockForUpdate()->findOrFail($order->id);
+            $locked = Order::query()->findOrFail($order->id);
             if (! $locked->canBeCancelledByCustomer()) {
                 return false;
             }
@@ -150,8 +151,8 @@ class OrderService
     // Hủy đơn: hoàn kho từng lô, trả lại số lượng cho chiến dịch giải cứu và thu hồi điểm xanh.
     public function cancel(Order $order, ?string $reason = null): void
     {
-        DB::transaction(function () use ($order, $reason) {
-            $locked = Order::query()->lockForUpdate()->find($order->id);
+        DocumentTransaction::run(function () use ($order, $reason) {
+            $locked = Order::query()->find($order->id);
             if (! $locked || $locked->status === 'cancelled') {
                 return;
             }
@@ -193,9 +194,9 @@ class OrderService
         $orderIds = DB::table('payments')->where('method', 'online')->where('status', 'pending')
             ->where('created_at', '<', now()->subMinutes($minutes))->pluck('order_id');
 
-        return $orderIds->filter(fn ($orderId) => DB::transaction(function () use ($orderId) {
+        return $orderIds->filter(fn ($orderId) => DocumentTransaction::run(function () use ($orderId) {
             // Cùng thứ tự khóa với VnpayController để IPN đến cùng lúc không ghi nhận đơn đã hủy.
-            $payment = DB::table('payments')->where('order_id', $orderId)->where('method', 'online')->lockForUpdate()->first();
+            $payment = DB::table('payments')->where('order_id', $orderId)->where('method', 'online')->first();
             if (! $payment || $payment->status !== 'pending') {
                 return false;
             }

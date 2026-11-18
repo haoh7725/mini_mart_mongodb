@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Order;
 use App\Services\OrderService;
 use App\Services\VnpayService;
+use App\Support\DocumentTransaction;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -48,8 +49,9 @@ class VnpayController extends Controller
         $successful = ($params['vnp_ResponseCode'] ?? null) === '00'
             && ($params['vnp_TransactionStatus'] ?? null) === '00';
 
-        DB::transaction(function () use ($order, $params, $successful) {
-            $payment = DB::table('payments')->where('order_id', $order->id)->where('method', 'online')->lockForUpdate()->first();
+        DocumentTransaction::run(function () use ($order, $params, $successful) {
+            $order->refresh();
+            $payment = DB::table('payments')->where('order_id', $order->id)->where('method', 'online')->first();
             if (! $payment || $payment->status !== 'pending') {
                 return;
             }

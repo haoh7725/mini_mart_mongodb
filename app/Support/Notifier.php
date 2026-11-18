@@ -2,10 +2,10 @@
 
 namespace App\Support;
 
+use App\Models\DatabaseNotification;
 use App\Models\Order;
 use App\Models\User;
 use App\Notifications\StoreNotification;
-use Illuminate\Notifications\DatabaseNotification;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
 

@@ -1,6 +1,6 @@
 @props(['product'])
 <article class="product-card">
-    <a class="product-visual tone-{{ ($product->id % 5) + 1 }}" href="{{ route('products.show', $product) }}" aria-label="Xem {{ $product->name }}">
+    <a class="product-visual tone-{{ (crc32((string) $product->id) % 5) + 1 }}" href="{{ route('products.show', $product) }}" aria-label="Xem {{ $product->name }}">
         @if($product->primary_image_url)<img src="{{ $product->primary_image_url }}" alt="{{ $product->name }}" loading="lazy">@else<span>{{ mb_substr($product->category?->name ?? 'Sản phẩm', 0, 1) }}</span>@endif
         @if($product->current_price < $product->selling_price)<b class="sale-badge">-{{ round((1 - $product->current_price / $product->selling_price) * 100) }}%</b>@endif
     </a>

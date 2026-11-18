@@ -2,8 +2,9 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
+use App\Models\MongoModel as Model;
+use MongoDB\BSON\UTCDateTime;
+use MongoDB\Laravel\Eloquent\SoftDeletes;
 
 class Product extends Model
 {
@@ -21,12 +22,19 @@ class Product extends Model
         return $this->belongsTo(Brand::class);
     }
 
-    // Giá bán thực tế ở mức SQL (giá khuyến mãi khi còn hiệu lực), dùng để lọc và sắp xếp.
-    public static function effectivePriceSql(): array
+    // Compute the active regular/sale price inside MongoDB, including expiry dates.
+    public static function effectivePriceExpression(): array
     {
-        $now = now()->toDateTimeString();
+        $now = new UTCDateTime(now());
 
-        return ['(CASE WHEN sale_price IS NOT NULL AND (sale_starts_at IS NULL OR sale_starts_at <= ?) AND (sale_ends_at IS NULL OR sale_ends_at >= ?) THEN sale_price ELSE selling_price END)', [$now, $now]];
+        return ['$cond' => [
+            ['$and' => [
+                ['$ne' => [['$ifNull' => ['$sale_price', null]], null]],
+                ['$lte' => [['$ifNull' => ['$sale_starts_at', $now]], $now]],
+                ['$gte' => [['$ifNull' => ['$sale_ends_at', $now]], $now]],
+            ]],
+            '$sale_price', '$selling_price',
+        ]];
     }
 
     public function inventoryLots()

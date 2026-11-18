@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\InventoryLot;
 use App\Models\RescueCampaign;
+use App\Support\MongoQueries;
 use Illuminate\Http\Request;
 
 class RescueController extends Controller
@@ -15,14 +16,14 @@ class RescueController extends Controller
         $lots = InventoryLot::query()->with(['product.images', 'rescueCampaign'])
             ->whereNotNull('expires_at')->where('expires_at', '>=', today())
             ->where('expires_at', '<=', today()->addDays($days))
-            ->whereRaw('quantity > reserved_quantity')->orderBy('expires_at')->paginate(15)->withQueryString();
+            ->whereRaw(['$expr' => ['$gt' => ['$quantity', ['$ifNull' => ['$reserved_quantity', 0]]]]])->orderBy('expires_at')->paginate(15)->withQueryString();
 
         return view('admin.rescue.index', [
             'lots' => $lots, 'days' => $days,
             'stats' => [
                 'active' => RescueCampaign::active()->count(),
                 'rescued' => RescueCampaign::sum('rescued_quantity'),
-                'saved' => RescueCampaign::selectRaw('SUM(rescued_quantity * (original_price - rescue_price)) as total')->value('total') ?? 0,
+                'saved' => MongoQueries::rescuedSavings(),
             ],
         ]);
     }

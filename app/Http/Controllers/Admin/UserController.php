@@ -47,7 +47,7 @@ class UserController extends Controller
     public function update(Request $request, User $user)
     {
         $data = $this->validated($request, $user);
-        if ($user->is($request->user()) && (! ($data['is_active'] ?? false) || (int) $data['role_id'] !== (int) $user->role_id)) {
+        if ($user->is($request->user()) && (! ($data['is_active'] ?? false) || (string) $data['role_id'] !== (string) $user->role_id)) {
             return back()->withErrors(['role_id' => 'Bạn không thể tự khóa tài khoản hoặc tự thay đổi vai trò của mình.'])->withInput();
         }
 

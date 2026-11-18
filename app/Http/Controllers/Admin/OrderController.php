@@ -6,8 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Models\User;
 use App\Services\OrderService;
+use App\Support\DocumentTransaction;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
 class OrderController extends Controller
@@ -42,7 +42,9 @@ class OrderController extends Controller
         if ($order->isClosed()) {
             return back()->withErrors(['status' => 'Đơn đã hủy hoặc đã trả hàng, không thể cập nhật thêm.']);
         }
-        DB::transaction(function () use ($order, $data, $orders, $shippers) {
+        DocumentTransaction::run(function () use ($order, $data, $orders, $shippers) {
+            $order->refresh();
+            abort_if($order->isClosed(), 422, 'Đơn đã hủy hoặc đã trả hàng, không thể cập nhật thêm.');
             $shipper = $shippers->find($data['shipper_id'] ?? null);
             $newShipper = $shipper && $shipper->id !== $order->shipper_id;
             $order->update(['payment_status' => $data['payment_status'], 'shipper_id' => $shipper?->id]);

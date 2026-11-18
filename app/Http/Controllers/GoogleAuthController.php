@@ -4,9 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Models\Role;
 use App\Models\User;
+use App\Support\DocumentTransaction;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Laravel\Socialite\Facades\Socialite;
 use Laravel\Socialite\Two\InvalidStateException;
@@ -55,7 +55,7 @@ class GoogleAuthController extends Controller
             return redirect()->route('login')->withErrors(['email' => 'Email Google của bạn chưa được xác minh.']);
         }
 
-        $user = DB::transaction(function () use ($google, $email) {
+        $user = DocumentTransaction::run(function () use ($google, $email) {
             $user = User::query()->where('google_id', $google->getId())->first()
                 ?? User::query()->where('email', $email)->first();
 

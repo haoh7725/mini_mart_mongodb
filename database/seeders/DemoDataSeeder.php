@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Models\Product;
 use App\Models\Role;
 use App\Models\User;
+use App\Support\DocumentTransaction;
 use Faker\Factory as FakerFactory;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
@@ -75,8 +76,8 @@ class DemoDataSeeder extends Seeder
                 default => 'unpaid',
             };
 
-            DB::transaction(function () use ($faker, $customer, $status, $paymentStatus, $createdAt, $code, $items, $subtotal, $shippingFee) {
-                $orderId = DB::table('orders')->insertGetId([
+            DocumentTransaction::run(function () use ($faker, $customer, $status, $paymentStatus, $createdAt, $code, $items, $subtotal, $shippingFee) {
+                $orderId = (string) DB::table('orders')->insertGetId([
                     'code' => $code,
                     'user_id' => $customer->id,
                     'customer_name' => $customer->name,

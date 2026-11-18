@@ -2,10 +2,10 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
+use App\Models\MongoModel as Model;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use MongoDB\Laravel\Eloquent\SoftDeletes;
 
 class Category extends Model
 {

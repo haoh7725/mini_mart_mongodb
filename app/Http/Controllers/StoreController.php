@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Brand;
 use App\Models\Category;
 use App\Models\Product;
+use App\Support\MongoQueries;
 use Illuminate\Http\Request;
 
 class StoreController extends Controller
@@ -59,25 +60,23 @@ class StoreController extends Controller
     public function products(Request $request)
     {
         $filters = $this->shopFilters($request);
-        [$priceSql, $priceBindings] = Product::effectivePriceSql();
+        $price = Product::effectivePriceExpression();
 
         $base = fn (array $except = []) => Product::query()->where('is_active', true)
             ->when($filters['q'] !== '', fn ($query) => $query->where('name', 'like', '%'.$filters['q'].'%'))
             ->when($filters['category'] && ! in_array('category', $except), fn ($query) => $query->whereHas('category', fn ($q) => $q->where('slug', $filters['category'])))
             ->when($filters['brand'] && ! in_array('brand', $except), fn ($query) => $query->whereHas('brand', fn ($q) => $q->where('slug', $filters['brand'])))
-            ->when($filters['min'] !== null, fn ($query) => $query->whereRaw("$priceSql >= ?", [...$priceBindings, $filters['min']]))
-            ->when($filters['max'] !== null, fn ($query) => $query->whereRaw("$priceSql <= ?", [...$priceBindings, $filters['max']]))
-            ->when($filters['sale'], fn ($query) => $query->whereRaw("$priceSql < selling_price", $priceBindings));
+            ->when($filters['min'] !== null, fn ($query) => $query->whereRaw(['$expr' => ['$gte' => [$price, $filters['min']]]]))
+            ->when($filters['max'] !== null, fn ($query) => $query->whereRaw(['$expr' => ['$lte' => [$price, $filters['max']]]]))
+            ->when($filters['sale'], fn ($query) => $query->whereRaw(['$expr' => ['$lt' => [$price, '$selling_price']]]));
 
-        $products = $base()->with(['category', 'brand', 'inventoryLots', 'images'])
-            ->when($filters['sort'] === 'price_asc', fn ($query) => $query->orderByRaw("$priceSql asc", $priceBindings))
-            ->when($filters['sort'] === 'price_desc', fn ($query) => $query->orderByRaw("$priceSql desc", $priceBindings))
-            ->when($filters['sort'] === '', fn ($query) => $query->latest())
-            ->paginate(12)->withQueryString();
+        $products = $filters['sort'] !== ''
+            ? MongoQueries::paginatePrices($base(), $filters['sort'])
+            : $base()->with(['category', 'brand', 'inventoryLots', 'images'])->latest()->paginate(12)->withQueryString();
 
         // Số lượng bên cạnh mỗi lựa chọn tính theo các bộ lọc còn lại.
-        $categoryCounts = $base(['category'])->selectRaw('category_id, COUNT(*) as total')->groupBy('category_id')->pluck('total', 'category_id');
-        $brandCounts = $base(['brand'])->whereNotNull('brand_id')->selectRaw('brand_id, COUNT(*) as total')->groupBy('brand_id')->pluck('total', 'brand_id');
+        $categoryCounts = MongoQueries::counts($base(['category']), 'category_id');
+        $brandCounts = MongoQueries::counts($base(['brand'])->whereNotNull('brand_id'), 'brand_id');
 
         return view('store.products', [
             'products' => $products,

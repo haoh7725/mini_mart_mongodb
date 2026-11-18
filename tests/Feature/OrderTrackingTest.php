@@ -6,12 +6,12 @@ use App\Models\Order;
 use App\Models\Product;
 use App\Models\User;
 use Database\Seeders\DatabaseSeeder;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshMongoDatabase;
 use Tests\TestCase;
 
 class OrderTrackingTest extends TestCase
 {
-    use RefreshDatabase;
+    use RefreshMongoDatabase;
 
     private User $customer;
 
@@ -38,7 +38,7 @@ class OrderTrackingTest extends TestCase
         return Order::latest('id')->firstOrFail();
     }
 
-    private function adminUpdate(Order $order, string $status, ?int $shipperId = null)
+    private function adminUpdate(Order $order, string $status, ?string $shipperId = null)
     {
         return $this->actingAs($this->admin)->patch(route('admin.orders.update', $order), [
             'status' => $status, 'payment_status' => $order->fresh()->payment_status, 'shipper_id' => $shipperId,

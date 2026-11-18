@@ -2,8 +2,8 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
+use App\Models\MongoModel as Model;
+use MongoDB\Laravel\Eloquent\SoftDeletes;
 
 class Brand extends Model
 {

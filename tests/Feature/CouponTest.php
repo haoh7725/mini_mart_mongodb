@@ -10,12 +10,12 @@ use App\Models\User;
 use App\Services\OrderService;
 use Database\Seeders\CouponSeeder;
 use Database\Seeders\DatabaseSeeder;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshMongoDatabase;
 use Tests\TestCase;
 
 class CouponTest extends TestCase
 {
-    use RefreshDatabase;
+    use RefreshMongoDatabase;
 
     protected function setUp(): void
     {

@@ -43,7 +43,7 @@
             const products = data.products.map(item => `<label class="chat-product"><input type="checkbox" value="${item.id}" checked><span>${item.image ? `<img src="${escapeHtml(item.image)}" alt="">` : '<i>M</i>'}<b>${escapeHtml(item.name)}</b><small>${escapeHtml(item.price)}</small></span></label>`).join('');
             loading.classList.remove('loading'); loading.querySelector('div:last-child').innerHTML = `<b>${escapeHtml(data.dish)}</b><p>${escapeHtml(data.answer)}</p><h3>Nguyên liệu</h3><ul>${ingredients}</ul><h3>Cách làm nhanh</h3><ol>${steps}</ol>${products ? `<div class="chat-products"><h3>Sản phẩm có tại MiniMart</h3>${products}<button type="button" class="button primary add-ai-products">Thêm món đã chọn vào giỏ</button></div>` : '<p><small>Hiện chưa tìm thấy sản phẩm khớp trong cửa hàng.</small></p>'}`;
             loading.querySelector('.add-ai-products')?.addEventListener('click', async event => {
-                const ids = [...loading.querySelectorAll('.chat-product input:checked')].map(item => Number(item.value)); if (!ids.length) return;
+                const ids = [...loading.querySelectorAll('.chat-product input:checked')].map(item => String(item.value)); if (!ids.length) return;
                 event.currentTarget.disabled = true;
                 const cartResponse = await fetch(@json(route('cooking-assistant.add-products')), {method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json','X-CSRF-TOKEN':token},body:JSON.stringify({product_ids:ids})});
                 const cartData = await cartResponse.json(); event.currentTarget.textContent = cartData.message || 'Đã cập nhật giỏ hàng';

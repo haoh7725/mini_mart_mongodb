@@ -8,6 +8,7 @@ use App\Models\Brand;
 use App\Models\Category;
 use App\Models\Product;
 use App\Models\ProductImage;
+use App\Support\DocumentTransaction;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -19,7 +20,7 @@ class ProductController extends Controller
     {
         $products = Product::query()->with(['category', 'images', 'inventoryLots'])->withTrashed()
             ->when($request->filled('q'), fn ($q) => $q->where(fn ($x) => $x->where('name', 'like', '%'.$request->string('q').'%')->orWhere('sku', 'like', '%'.$request->string('q').'%')))
-            ->when($request->filled('category'), fn ($q) => $q->where('category_id', $request->integer('category')))
+            ->when($request->filled('category'), fn ($q) => $q->where('category_id', $request->input('category')))
             ->latest()->paginate(15)->withQueryString();
 
         return view('admin.products.index', ['products' => $products, 'categories' => Category::orderBy('name')->get()]);
@@ -39,7 +40,7 @@ class ProductController extends Controller
 
     public function store(ProductRequest $request)
     {
-        $product = DB::transaction(function () use ($request) {
+        $product = DocumentTransaction::run(function () use ($request) {
             $data = $this->normalized($request);
             $product = Product::create($data);
             $this->saveImages($request, $product);
@@ -52,7 +53,8 @@ class ProductController extends Controller
 
     public function update(ProductRequest $request, Product $product)
     {
-        DB::transaction(function () use ($request, $product) {
+        DocumentTransaction::run(function () use ($request, $product) {
+            $product->refresh();
             $product->update($this->normalized($request));
             $this->saveImages($request, $product);
         });
@@ -68,7 +70,7 @@ class ProductController extends Controller
         return back()->with('success', 'Đã chuyển sản phẩm vào thùng rác.');
     }
 
-    public function restore(int $product)
+    public function restore(string $product)
     {
         Product::withTrashed()->findOrFail($product)->restore();
 
@@ -97,7 +99,8 @@ class ProductController extends Controller
     {
         abort_unless($image->product_id === $product->id, 404);
 
-        DB::transaction(function () use ($product, $image) {
+        DocumentTransaction::run(function () use ($product, $image) {
+            $image->refresh();
             $product->images()->update(['is_primary' => false]);
             $image->update(['is_primary' => true]);
         });

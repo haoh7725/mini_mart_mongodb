@@ -58,12 +58,12 @@ const initAiChatbox = () => {
             if (!response.ok) throw new Error(data.message || 'Không thể nhận câu trả lời.');
             const ingredients = (data.ingredients || []).map(item => `<li>${escapeHtml(item)}</li>`).join('');
             const steps = (data.steps || []).map(item => `<li>${escapeHtml(item)}</li>`).join('');
-            const products = (data.products || []).map(item => `<label class="ai-widget-product"><input type="checkbox" value="${Number(item.id)}" checked><span>${item.image ? `<img src="${escapeHtml(item.image)}" alt="">` : '<i>M</i>'}<b>${escapeHtml(item.name)}</b><small>${escapeHtml(item.price)}</small></span></label>`).join('');
+            const products = (data.products || []).map(item => `<label class="ai-widget-product"><input type="checkbox" value="${escapeHtml(String(item.id))}" checked><span>${item.image ? `<img src="${escapeHtml(item.image)}" alt="">` : '<i>M</i>'}<b>${escapeHtml(item.name)}</b><small>${escapeHtml(item.price)}</small></span></label>`).join('');
             loading.classList.remove('loading');
             loading.querySelector('div').innerHTML = `<b>${escapeHtml(data.dish)}</b><p>${escapeHtml(data.answer)}</p>${ingredients ? `<details><summary>Nguyên liệu</summary><ul>${ingredients}</ul></details>` : ''}${steps ? `<details><summary>Cách làm</summary><ol>${steps}</ol></details>` : ''}${products ? `<div class="ai-widget-products"><b>Có tại MiniMart</b>${products}<button type="button" class="ai-widget-add">Thêm vào giỏ</button></div>` : ''}`;
             const addButton = loading.querySelector('.ai-widget-add');
             addButton?.addEventListener('click', async () => {
-                const productIds = [...loading.querySelectorAll('.ai-widget-product input:checked')].map(item => Number(item.value));
+                const productIds = [...loading.querySelectorAll('.ai-widget-product input:checked')].map(item => String(item.value));
                 if (!productIds.length) return;
                 addButton.disabled = true;
                 try {

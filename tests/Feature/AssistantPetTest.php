@@ -5,12 +5,12 @@ namespace Tests\Feature;
 use App\Models\User;
 use App\Support\AssistantPet;
 use Database\Seeders\DatabaseSeeder;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshMongoDatabase;
 use Tests\TestCase;
 
 class AssistantPetTest extends TestCase
 {
-    use RefreshDatabase;
+    use RefreshMongoDatabase;
 
     protected function setUp(): void
     {

@@ -4,10 +4,13 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\CheckoutRequest;
 use App\Models\Coupon;
+use App\Models\InventoryLot;
 use App\Models\Order;
 use App\Models\Product;
+use App\Models\RescueCampaign;
 use App\Services\OrderService;
 use App\Services\VnpayService;
+use App\Support\DocumentTransaction;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -40,11 +43,11 @@ class CheckoutController extends Controller
         abort_if(empty($cart), 422, 'Giỏ hàng đang trống.');
 
         $couponCode = trim((string) $request->input('coupon_code', ''));
-        $order = DB::transaction(function () use ($cart, $customer, $paymentMethod, $couponCode) {
+        $order = DocumentTransaction::run(function () use ($cart, $customer, $paymentMethod, $couponCode) {
             $products = Product::query()->with([
-                'inventoryLots' => fn ($q) => $q->lockForUpdate(),
-                'inventoryLots.rescueCampaign' => fn ($q) => $q->lockForUpdate(),
-            ])->where('is_active', true)->whereIn('id', array_keys($cart))->lockForUpdate()->get();
+                'inventoryLots' => fn ($q) => $q,
+                'inventoryLots.rescueCampaign' => fn ($q) => $q,
+            ])->where('is_active', true)->whereIn('id', array_keys($cart))->get();
             abort_if($products->count() !== count($cart), 422, 'Một sản phẩm trong giỏ không còn được bán.');
             foreach ($products as $product) {
                 abort_if((int) $cart[$product->id] > $product->stock, 422, $product->name.' không còn đủ số lượng trong kho.');
@@ -53,7 +56,7 @@ class CheckoutController extends Controller
             $lineTotals = $allocations->map(fn (array $parts) => collect($parts)->sum(fn ($part) => $part['quantity'] * $part['unit_price']));
             $subtotal = $lineTotals->sum();
             $shippingFee = Order::shippingFeeFor($subtotal);
-            // Match cancellation's stock-before-coupon locking order.
+            // All document writes below are committed together on the replica set.
             $coupon = $couponCode !== '' ? Coupon::forCode($couponCode, true) : null;
             $discount = $coupon?->discount($subtotal) ?? 0;
             if ($paymentMethod === 'vnpay' && $subtotal - $discount + $shippingFee <= 0) {
@@ -68,7 +71,14 @@ class CheckoutController extends Controller
                 'discount_amount' => $discount,
                 'total_amount' => $subtotal - $discount + $shippingFee,
             ]);
-            $coupon?->increment('used_count');
+            if ($coupon) {
+                $reserved = Coupon::whereKey($coupon->id)->where(function ($query) {
+                    $query->whereNull('usage_limit')->orWhereRaw(['$expr' => ['$lt' => ['$used_count', '$usage_limit']]]);
+                })->increment('used_count');
+                if (! $reserved) {
+                    throw ValidationException::withMessages(['coupon_code' => 'Mã giảm giá đã hết lượt sử dụng.']);
+                }
+            }
             foreach ($products as $product) {
                 $quantity = (int) $cart[$product->id];
                 $lineTotal = $lineTotals[$product->id];
@@ -78,8 +88,20 @@ class CheckoutController extends Controller
                 ]);
                 foreach ($allocations[$product->id] as $part) {
                     $lot = $part['lot'];
-                    $lot->decrement('quantity', $part['quantity']);
-                    $part['campaign']?->increment('rescued_quantity', $part['quantity']);
+                    $deducted = InventoryLot::whereKey($lot->id)->whereRaw(['$expr' => [
+                        '$gte' => [['$subtract' => ['$quantity', ['$ifNull' => ['$reserved_quantity', 0]]]], $part['quantity']],
+                    ]])->decrement('quantity', $part['quantity']);
+                    if (! $deducted) {
+                        throw ValidationException::withMessages(['cart' => $product->name.' không còn đủ số lượng trong kho.']);
+                    }
+                    if ($campaign = $part['campaign']) {
+                        $reserved = RescueCampaign::whereKey($campaign->id)->active()->whereRaw(['$expr' => [
+                            '$gte' => [['$subtract' => ['$initial_quantity', '$rescued_quantity']], $part['quantity']],
+                        ]])->increment('rescued_quantity', $part['quantity']);
+                        if (! $reserved) {
+                            throw ValidationException::withMessages(['cart' => 'Số lượng giải cứu đã thay đổi. Vui lòng thử lại.']);
+                        }
+                    }
                     DB::table('stock_movements')->insert([
                         'warehouse_id' => $lot->warehouse_id, 'product_id' => $product->id,
                         'product_variant_id' => $lot->product_variant_id, 'inventory_lot_id' => $lot->id,

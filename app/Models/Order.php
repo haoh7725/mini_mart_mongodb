@@ -2,7 +2,7 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
+use App\Models\MongoModel as Model;
 
 class Order extends Model
 {
@@ -90,7 +90,7 @@ class Order extends Model
 
     public function latestTrackingEvent()
     {
-        return $this->hasOne(OrderTrackingEvent::class)->latestOfMany();
+        return $this->hasOne(OrderTrackingEvent::class)->latest('created_at')->latest('id');
     }
 
     public function statusLabel(): string

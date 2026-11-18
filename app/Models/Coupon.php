@@ -2,7 +2,7 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
+use App\Models\MongoModel as Model;
 use Illuminate\Validation\ValidationException;
 
 class Coupon extends Model
@@ -51,7 +51,7 @@ class Coupon extends Model
     public static function forCode(string $code, bool $lock = false): self
     {
         $query = static::where('code', strtoupper(trim($code)));
-        $coupon = ($lock ? $query->lockForUpdate() : $query)->first();
+        $coupon = ($lock ? $query : $query)->first();
         if (! $coupon) {
             throw ValidationException::withMessages(['coupon_code' => 'Mã giảm giá không tồn tại.']);
         }

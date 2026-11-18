@@ -8,7 +8,7 @@ use App\Models\Order;
 use App\Models\Product;
 use App\Models\RescueCampaign;
 use App\Models\User;
-use Illuminate\Support\Facades\DB;
+use App\Support\MongoQueries;
 
 class DashboardController extends Controller
 {
@@ -22,7 +22,7 @@ class DashboardController extends Controller
                 'value' => (float) Order::where('status', 'completed')->whereYear('created_at', $month->year)->whereMonth('created_at', $month->month)->sum('total_amount'),
             ];
         });
-        $orderStatuses = Order::query()->select('status', DB::raw('COUNT(*) as total'))->groupBy('status')->pluck('total', 'status');
+        $orderStatuses = MongoQueries::counts(Order::query(), 'status');
         $lowStockProducts = Product::with('inventoryLots')->get()->filter(fn ($product) => $product->stock <= 10)->sortBy('stock')->take(6);
 
         return view('admin.dashboard', [
@@ -30,7 +30,7 @@ class DashboardController extends Controller
                 'products' => Product::count(), 'categories' => Category::count(),
                 'orders' => Order::count(), 'customers' => User::whereHas('role', fn ($q) => $q->where('slug', 'customer'))->count(),
                 'revenue' => Order::where('status', 'completed')->sum('total_amount'),
-                'low_stock' => DB::table('inventory_lots')->select('product_id')->groupBy('product_id')->havingRaw('SUM(quantity - reserved_quantity) <= 10')->count(),
+                'low_stock' => MongoQueries::stockTotals()->filter(fn ($stock) => $stock <= 10)->count(),
                 'today_orders' => Order::whereDate('created_at', today())->count(),
                 'pending_orders' => Order::where('status', 'pending')->count(),
                 'rescued' => RescueCampaign::sum('rescued_quantity'),

@@ -2,7 +2,7 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
+use App\Models\MongoModel as Model;
 
 class RescueCampaign extends Model
 {
@@ -36,7 +36,7 @@ class RescueCampaign extends Model
 
     public function scopeActive($query)
     {
-        return $query->where('is_active', true)->whereColumn('rescued_quantity', '<', 'initial_quantity')
+        return $query->where('is_active', true)->whereRaw(['$expr' => ['$lt' => ['$rescued_quantity', '$initial_quantity']]])
             ->where('starts_at', '<=', now())->where('ends_at', '>=', now());
     }
 }

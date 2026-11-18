@@ -7,13 +7,13 @@ use App\Models\Order;
 use App\Models\Product;
 use App\Models\User;
 use Database\Seeders\DatabaseSeeder;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Tests\Concerns\RefreshMongoDatabase;
 use Tests\TestCase;
 
 class CustomerCancelOrderTest extends TestCase
 {
-    use RefreshDatabase;
+    use RefreshMongoDatabase;
 
     private User $customer;
 

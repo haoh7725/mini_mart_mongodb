@@ -17,7 +17,7 @@ return [
     |
     */
 
-    'default' => env('DB_CONNECTION', 'sqlite'),
+    'default' => env('DB_CONNECTION', 'mongodb'),
 
     /*
     |--------------------------------------------------------------------------
@@ -31,6 +31,13 @@ return [
     */
 
     'connections' => [
+
+        'mongodb' => [
+            'driver' => 'mongodb',
+            'dsn' => env('DB_URI', 'mongodb://127.0.0.1:27018/?replicaSet=minimart'),
+            'database' => env('DB_DATABASE', 'mini_mart'),
+            'options' => ['appName' => 'MiniMart'],
+        ],
 
         'sqlite' => [
             'driver' => 'sqlite',

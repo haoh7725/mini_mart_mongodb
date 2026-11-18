@@ -24,7 +24,7 @@ class BrandSeeder extends Seeder
         foreach (self::BRANDS as $name => $skus) {
             $slug = Str::slug($name);
             DB::table('brands')->updateOrInsert(['slug' => $slug], ['name' => $name, 'is_active' => true, 'created_at' => now(), 'updated_at' => now()]);
-            $brandId = DB::table('brands')->where('slug', $slug)->value('id');
+            $brandId = (string) DB::table('brands')->where('slug', $slug)->value('id');
             DB::table('products')->whereIn('sku', $skus)->whereNull('brand_id')->update(['brand_id' => $brandId]);
         }
     }

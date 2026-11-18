@@ -7,6 +7,7 @@ use App\Models\Product;
 use App\Models\ReturnRequest;
 use App\Services\OrderService;
 use App\Support\AssistantPet;
+use App\Support\DocumentTransaction;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -124,8 +125,8 @@ class AccountController extends Controller
         ], ['return_reason.required' => 'Vui lòng chọn lý do trả hàng.']);
         $order = $this->ordersFor($request)->where('code', $code)->firstOrFail();
 
-        $sent = DB::transaction(function () use ($order, $data, $orders) {
-            $locked = Order::query()->with('returnRequest')->lockForUpdate()->findOrFail($order->id);
+        $sent = DocumentTransaction::run(function () use ($order, $data, $orders) {
+            $locked = Order::query()->with('returnRequest')->findOrFail($order->id);
             if (! $locked->canRequestReturn()) {
                 return false;
             }
